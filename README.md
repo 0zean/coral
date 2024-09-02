@@ -24,7 +24,7 @@ A streamlit web-app framework for Counter-Strike 2 mods built using Python. **Fo
 
 # Setup
 
-You'll need [a2x's cs2-dumper](https://github.com/a2x/cs2-dumper) for updating offsets at launch. You can finde the `cs2-dumper.exe` under releases.
+You'll need [a2x's cs2-dumper](https://github.com/a2x/cs2-dumper) for updating offsets at launch. You can find the `cs2-dumper.exe` under releases or, preferably, compile it yourself.
 
 Once downloaded, place it in the same folder as this repo after cloning.
 
