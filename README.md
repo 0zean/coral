@@ -63,7 +63,7 @@ To start the streamlit app, have CS2 running and double-click `start.bat`. This 
 
 The web app will compile and then start running at `http://localhost:8501` which will be automatically copied to the clipboard.
 
-The web app can also be accessed through your phone if you create an exception for port `8501` in your firewall Inbound Rules.
+Because the streamlit app is hosted on localhost, it can optionally be accessed through your phone if you create an exception for port `8501` in your firewall Inbound Rules.
 
 ### ⚠️ Warning
 
