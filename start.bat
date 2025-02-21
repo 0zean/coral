@@ -43,7 +43,7 @@ for /f "delims=: tokens=*" %%A in ('findstr /b ::: "%~f0"') do @echo %%A
 
 REM Navigate to the directory and activate conda environment
 cd "..\coral"
-call activate coral
+call .\.venv\Scripts\activate
 
 REM Copy the Local URL to the clipboard
 echo http://localhost:8501 | clip
