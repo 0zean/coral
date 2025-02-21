@@ -2,3 +2,5 @@ __pycache__
 debug
 *.exe
 *.log
+.python-version
+.venv
