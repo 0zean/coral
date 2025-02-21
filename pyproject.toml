@@ -1,0 +1,43 @@
+[project]
+name = "coral"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "0zean",email = "42080997+0zean@users.noreply.github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "keyboard (==0.13.5)",
+    "pynput (==1.7.7)",
+    "pywin32 (==308)",
+    "Pymem (==1.13.1)",
+    "streamlit (==1.38.0)",
+    "glfw (>=2.7.0)",
+    "imgui (>=2.0.0)",
+    "PyOpenGL( >=3.1.7)",
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.group.dev.dependencies]
+black = ">=25.1.0"
+isort = ">=6.0.0,<7.0.0"
+pylint = "^3.3.3"
+flake8 = "^7.1.0"
+flake8-pyproject = "^1.2.3"
+mypy = "^1.15.0"
+
+[tool.black]
+line-length = 120
+target-version = ['py310']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
