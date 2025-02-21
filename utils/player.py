@@ -13,6 +13,7 @@ def pymem_exception(func):
             return func(*args, **kwargs)
         except pymem.exception.MemoryReadError as e:
             print(f"Memory read error occurred in {func.__name__}: {e}")
+
     return wrapper
 
 
@@ -30,11 +31,11 @@ class PlayerPawn:
 
     @pymem_exception
     def get_view_angle(self):
-        return Vec2(*struct.unpack('ff', self.pm.read_bytes(self.address + self.offsets.m_angEyeAngles, 8)))
+        return Vec2(*struct.unpack("ff", self.pm.read_bytes(self.address + self.offsets.m_angEyeAngles, 8)))
 
     @pymem_exception
     def get_aim_punch_angle(self):
-        return Vec3(*struct.unpack('fff', self.pm.read_bytes(self.address + self.offsets.m_aimPunchAngle, 12)))
+        return Vec3(*struct.unpack("fff", self.pm.read_bytes(self.address + self.offsets.m_aimPunchAngle, 12)))
 
     @pymem_exception
     def get_shots_fired(self):
@@ -44,7 +45,7 @@ class PlayerPawn:
     def get_aim_punch_cache(self):
         cache_bytes = self.pm.read_bytes(self.address + self.offsets.m_aimPunchCache, sizeof(C_UTL_VECTOR))
         return C_UTL_VECTOR.from_buffer_copy(cache_bytes)
-    
+
     @pymem_exception
     def cache_to_punch(self):
         punch_angle_ptr = self.AimPunchCache.Data + (self.AimPunchCache.Count - 1) * sizeof(Vec3)

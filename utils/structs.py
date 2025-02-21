@@ -17,10 +17,10 @@ class Offsets:
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
-    
+
     def __getattr__(self, item):
         raise AttributeError(f"'Offsets' object has no attribute '{item}'")
-    
+
     def add_offsets(self, offsets_dict):
         for key, value in offsets_dict.items():
             setattr(self, key, value)

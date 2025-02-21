@@ -13,11 +13,11 @@ nv = Client()
 offsets = Offsets()
 
 offsets_dict = {
-    "dwEntityList": nv.offset('dwEntityList'),
-    "dwLocalPlayerPawn": nv.offset('dwLocalPlayerPawn'),
-    "m_iIDEntIndex": nv.get('C_CSPlayerPawnBase', 'm_iIDEntIndex'),
-    "m_iTeamNum": nv.get('C_BaseEntity', 'm_iTeamNum'),
-    "m_iHealth": nv.get('C_BaseEntity', 'm_iHealth')
+    "dwEntityList": nv.offset("dwEntityList"),
+    "dwLocalPlayerPawn": nv.offset("dwLocalPlayerPawn"),
+    "m_iIDEntIndex": nv.get("C_CSPlayerPawnBase", "m_iIDEntIndex"),
+    "m_iTeamNum": nv.get("C_BaseEntity", "m_iTeamNum"),
+    "m_iHealth": nv.get("C_BaseEntity", "m_iHealth"),
 }
 
 offsets.add_offsets(offsets_dict)
@@ -51,12 +51,12 @@ def trig(pm, client, triggerkey="shift"):
                             mouse.release(Button.left)
 
                 time.sleep(0.03)
-                
+
             else:
                 time.sleep(0.1)
-                
+
         except KeyboardInterrupt:
             break
-        
+
         except Exception:
             pass

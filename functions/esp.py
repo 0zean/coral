@@ -24,7 +24,7 @@ offsets_dict = {
     "m_lifeState": nv.get("C_BaseEntity", "m_lifeState"),
     "m_pGameSceneNode": nv.get("C_BaseEntity", "m_pGameSceneNode"),
     "m_modelState": nv.get("CSkeletonInstance", "m_modelState"),
-    "m_hPlayerPawn": nv.get('CCSPlayerController','m_hPlayerPawn'),
+    "m_hPlayerPawn": nv.get("CCSPlayerController", "m_hPlayerPawn"),
     "m_iIDEntIndex": nv.get("C_CSPlayerPawnBase", "m_iIDEntIndex"),
     "m_iTeamNum": nv.get("C_BaseEntity", "m_iTeamNum"),
     "m_iHealth": nv.get("C_BaseEntity", "m_iHealth"),
@@ -95,23 +95,17 @@ def pre_esp(pm, client, draw_list):
         if not entity_controller:
             continue
 
-        entity_controller_pawn = pm.read_longlong(
-            entity_controller + offsets.m_hPlayerPawn
-        )
+        entity_controller_pawn = pm.read_longlong(entity_controller + offsets.m_hPlayerPawn)
 
         if not entity_controller_pawn:
             continue
 
-        list_entry = pm.read_longlong(
-            entity + (0x8 * ((entity_controller_pawn & 0x7FFF) >> 9) + 16)
-        )
+        list_entry = pm.read_longlong(entity + (0x8 * ((entity_controller_pawn & 0x7FFF) >> 9) + 16))
 
         if not list_entry:
             continue
 
-        entity_pawn_addr = pm.read_longlong(
-            list_entry + (120) * (entity_controller_pawn & 0x1FF)
-        )
+        entity_pawn_addr = pm.read_longlong(list_entry + (120) * (entity_controller_pawn & 0x1FF))
 
         if not entity_pawn_addr or entity_pawn_addr == local_player_pawn_addr:
             continue
@@ -158,7 +152,7 @@ def pre_esp(pm, client, draw_list):
             waist = w2s(view_matrix, waist_bone[0], waist_bone[1], waist_bone[2], ScreenY, ScreenX)
             kneesR = w2s(view_matrix, kneesR_bone[0], kneesR_bone[1], kneesR_bone[2], ScreenY, ScreenX)
             kneesL = w2s(view_matrix, kneesL_bone[0], kneesL_bone[1], kneesL_bone[2], ScreenY, ScreenX)
-            feetR = w2s(view_matrix, feetR_bone[0], feetR_bone[1],feetR_bone[2], ScreenY, ScreenX)
+            feetR = w2s(view_matrix, feetR_bone[0], feetR_bone[1], feetR_bone[2], ScreenY, ScreenX)
             feetL = w2s(view_matrix, feetL_bone[0], feetL_bone[1], feetL_bone[2], ScreenY, ScreenX)
 
             # Skeleton ESP

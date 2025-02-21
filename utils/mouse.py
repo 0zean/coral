@@ -8,12 +8,14 @@ MOUSEEVENTF_MOVE = 0x0001
 
 # ctypes structures for mouse input
 class MOUSEINPUT(ctypes.Structure):
-    _fields_ = [("dx", ctypes.c_long),
-                ("dy", ctypes.c_long),
-                ("mouseData", ctypes.c_ulong),
-                ("dwFlags", ctypes.c_ulong),
-                ("time", ctypes.c_ulong),
-                ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong))]
+    _fields_ = [
+        ("dx", ctypes.c_long),
+        ("dy", ctypes.c_long),
+        ("mouseData", ctypes.c_ulong),
+        ("dwFlags", ctypes.c_ulong),
+        ("time", ctypes.c_ulong),
+        ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+    ]
 
 
 class INPUT(ctypes.Structure):
@@ -21,8 +23,7 @@ class INPUT(ctypes.Structure):
         _fields_ = [("mi", MOUSEINPUT)]
 
     _anonymous_ = ("u",)
-    _fields_ = [("type", ctypes.c_ulong),
-                ("u", _INPUT_UNION)]
+    _fields_ = [("type", ctypes.c_ulong), ("u", _INPUT_UNION)]
 
 
 # ctypes function prototypes
@@ -41,7 +42,9 @@ last_moved_time = time()
 
 # Helper function to create mouse input
 def create_mouse_input(flags, dx, dy, data, extra_info):
-    mi = MOUSEINPUT(dx=dx, dy=dy, mouseData=data, dwFlags=flags, time=0, dwExtraInfo=ctypes.pointer(ctypes.c_ulong(extra_info)))
+    mi = MOUSEINPUT(
+        dx=dx, dy=dy, mouseData=data, dwFlags=flags, time=0, dwExtraInfo=ctypes.pointer(ctypes.c_ulong(extra_info))
+    )
     input = INPUT(type=0, u=INPUT._INPUT_UNION(mi=mi))
     return input
 

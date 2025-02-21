@@ -9,23 +9,23 @@ nv = Client()
 offsets = Offsets()
 
 offsets_dict = {
-    'dwEntityList': nv.offset('dwEntityList'),
-    'dwLocalPlayerPawn': nv.offset('dwLocalPlayerPawn'),
-    'dwSensitivity': nv.offset('dwSensitivity'),
-    'dwSensitivity_sensitivity': nv.offset('dwSensitivity_sensitivity'),
-    'm_iIDEntIndex': nv.get('C_CSPlayerPawnBase', 'm_iIDEntIndex'),
-    'm_iTeamNum': nv.get('C_BaseEntity', 'm_iTeamNum'),
-    'm_iHealth': nv.get('C_BaseEntity', 'm_iHealth'),
-    'm_iShotsFired': nv.get('C_CSPlayerPawn', 'm_iShotsFired'),
-    'm_aimPunchCache': nv.get('C_CSPlayerPawn', 'm_aimPunchCache'),
-    'm_angEyeAngles': nv.get('C_CSPlayerPawnBase', 'm_angEyeAngles'),
-    'm_aimPunchAngle': nv.get('C_CSPlayerPawn', 'm_aimPunchAngle')
+    "dwEntityList": nv.offset("dwEntityList"),
+    "dwLocalPlayerPawn": nv.offset("dwLocalPlayerPawn"),
+    "dwSensitivity": nv.offset("dwSensitivity"),
+    "dwSensitivity_sensitivity": nv.offset("dwSensitivity_sensitivity"),
+    "m_iIDEntIndex": nv.get("C_CSPlayerPawnBase", "m_iIDEntIndex"),
+    "m_iTeamNum": nv.get("C_BaseEntity", "m_iTeamNum"),
+    "m_iHealth": nv.get("C_BaseEntity", "m_iHealth"),
+    "m_iShotsFired": nv.get("C_CSPlayerPawn", "m_iShotsFired"),
+    "m_aimPunchCache": nv.get("C_CSPlayerPawn", "m_aimPunchCache"),
+    "m_angEyeAngles": nv.get("C_CSPlayerPawnBase", "m_angEyeAngles"),
+    "m_aimPunchAngle": nv.get("C_CSPlayerPawn", "m_aimPunchAngle"),
 }
 
 offsets.add_offsets(offsets_dict)
 
 
-def rcs(pm, client, amt):    
+def rcs(pm, client, amt):
     old_punch = Vec3(0.0, 0.0, 0.0)
     while True:
         try:
@@ -46,18 +46,20 @@ def rcs(pm, client, amt):
                             continue
 
                         punch_angle = local.cache_to_punch()
-           
+
                         if local.get_shots_fired() > 1:
 
-                            new_punch = Vec3(punch_angle.x - old_punch.x,
-                                            punch_angle.y - old_punch.y, 0)
+                            new_punch = Vec3(punch_angle.x - old_punch.x, punch_angle.y - old_punch.y, 0)
 
-                            new_angle = Vec3(local.ViewAngle.x - new_punch.x * amt,
-                                            local.ViewAngle.y - new_punch.y * amt, 0)
-            
-                            move_mouse(int(((new_angle.y - local.ViewAngle.y) / local.ClientSensitivity) / -0.022),
-                                    int(((new_angle.x - local.ViewAngle.x) / local.ClientSensitivity) / 0.022),
-                                    False)
+                            new_angle = Vec3(
+                                local.ViewAngle.x - new_punch.x * amt, local.ViewAngle.y - new_punch.y * amt, 0
+                            )
+
+                            move_mouse(
+                                int(((new_angle.y - local.ViewAngle.y) / local.ClientSensitivity) / -0.022),
+                                int(((new_angle.x - local.ViewAngle.x) / local.ClientSensitivity) / 0.022),
+                                False,
+                            )
 
                             old_punch = punch_angle
 
