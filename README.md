@@ -43,18 +43,20 @@ git clone https://github.com/0zean/coral.git
 
 ### 🛠️ 2. Create virtual 
 
-Using [Anaconda](https://docs.anaconda.com/miniconda/miniconda-install/), create a new env:
+Using pyenv, create a new virtual environment:
 
 ```bash
-conda create -n coral python=3.10
+pyenv local 3.10.11
+python -m venv .venv
 ```
 
 ### 📦 3. Install libraries
 
-Install `pip` dependencies from `requirements.txt`:
+Install dependencies via `poetry`:
 
 ```bash
-pip install -r requirements.txt
+pip install poetry
+poetry install
 ```
 
 ### 🚀 4. Run the application
