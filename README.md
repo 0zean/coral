@@ -9,10 +9,10 @@
 
 
 <div align="center">
-    <img src="https://img.shields.io/github/stars/0zean/oasis?style=for-the-badge&logo=github&color=dfb216"/>
-    <img src="https://img.shields.io/github/issues/0zean/oasis?style=for-the-badge&logo=github&color=3380F5"/>
-    <img src="https://img.shields.io/github/commit-activity/t/0zean/oasis?style=for-the-badge&logo=github&color=fe7d37"/>
-    <img src="https://img.shields.io/github/forks/0zean/oasis?style=for-the-badge&logo=github&color=96ca01"/>
+    <img src="https://img.shields.io/github/stars/0zean/oasis?style=for-the-badge&logo=github&color=fdc4b6"/>
+    <img src="https://img.shields.io/github/issues/0zean/oasis?style=for-the-badge&logo=github&color=2694ab"/>
+    <img src="https://img.shields.io/github/commit-activity/t/0zean/oasis?style=for-the-badge&logo=github&color=e59572"/>
+    <img src="https://img.shields.io/github/forks/0zean/oasis?style=for-the-badge&logo=github&color=4dbedf"/>
 </div>
 
 
