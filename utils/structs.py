@@ -14,13 +14,13 @@ class C_UTL_VECTOR(Structure):
 
 
 class Offsets:
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-    def __getattr__(self, item):
+    def __getattr__(self, item) -> int:
         raise AttributeError(f"'Offsets' object has no attribute '{item}'")
 
-    def add_offsets(self, offsets_dict):
+    def add_offsets(self, offsets_dict) -> None:
         for key, value in offsets_dict.items():
             setattr(self, key, value)

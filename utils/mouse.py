@@ -1,6 +1,7 @@
 import ctypes
 import threading
 from time import time
+from typing import Literal
 
 # Constant for mouse input
 MOUSEEVENTF_MOVE = 0x0001
@@ -41,7 +42,7 @@ last_moved_time = time()
 
 
 # Helper function to create mouse input
-def create_mouse_input(flags, dx, dy, data, extra_info):
+def create_mouse_input(flags: Literal[1], dx: int, dy: int, data: int, extra_info: int) -> INPUT:
     mi = MOUSEINPUT(
         dx=dx, dy=dy, mouseData=data, dwFlags=flags, time=0, dwExtraInfo=ctypes.pointer(ctypes.c_ulong(extra_info))
     )
@@ -50,12 +51,12 @@ def create_mouse_input(flags, dx, dy, data, extra_info):
 
 
 # Function to send input
-def send_input(input):
+def send_input(input) -> None:
     SendInput(1, ctypes.byref(input), ctypes.sizeof(input))
 
 
 # Function to move mouse
-def move_mouse(x, y, set_last_moved):
+def move_mouse(x: int, y: int, set_last_moved: bool) -> None:
     send_input(create_mouse_input(MOUSEEVENTF_MOVE, x, y, 0, 0))
     if set_last_moved:
         global last_moved_time

@@ -22,10 +22,12 @@ if exit_app:
 try:
     pm = pymem.Pymem("cs2.exe")
     state.msg = st.toast("cs2.exe found! loading...", icon="🎉")
-    client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
+    module = pymem.pymem.process.module_from_name(pm.process_handle, "client.dll")
+    if module:
+        client = module.lpBaseofDll
     time.sleep(1)
     state.msg.toast("coral.py loaded", icon="💯")
-except pymem.exception.ProcessNotFound:
+except pymem.pymem.exception.ProcessNotFound:
     st.error("cs2.exe not found!", icon="🚨")
 
 
@@ -119,7 +121,7 @@ keys = [
 ]
 
 # App design + layout
-with open("assets\style.css") as f:
+with open("assets/style.css") as f:
     css = f.read()
 
 # Custom title using CSS file
@@ -172,13 +174,13 @@ rcs_stop_flag = threading.Event()
 esp_stop_flag = threading.Event()
 
 
-def run_trigger():
+def run_trigger() -> None:
     while not trigger_stop_flag.is_set():
         if enable_trigger:
             trig(pm, client, trigkey)
 
 
-def on_trigkey_change(new_key):
+def on_trigkey_change(new_key: str) -> None:
     # Check if tbot is running and stop it
     if state.tbot_thread is not None and state.tbot_thread.is_alive():
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(state.tbot_thread.ident), ctypes.py_object(SystemExit))
@@ -189,13 +191,13 @@ def on_trigkey_change(new_key):
     state.tbot_thread.start()
 
 
-def run_rcs():
+def run_rcs() -> None:
     while not rcs_stop_flag.is_set():
         if enable_rcs:
             rcs(pm, client, amt)
 
 
-def on_rcs_change(new_amt):
+def on_rcs_change(new_amt: float) -> None:
     # Check if rcs is running and stop it
     if state.rcs_thread is not None and state.rcs_thread.is_alive():
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(state.rcs_thread.ident), ctypes.py_object(SystemExit))
@@ -206,7 +208,7 @@ def on_rcs_change(new_amt):
     state.rcs_thread.start()
 
 
-def run_esp():
+def run_esp() -> None:
     while not esp_stop_flag.is_set():
         if enable_esp:
             esp(pm, client)
@@ -250,19 +252,19 @@ if state.esp_thread is None or not state.esp_thread.is_alive():
 # Check if the checkboxes are unchecked and set the stop flags
 if not enable_trigger:
     trigger_stop_flag.set()
-    if state.tbot_thread.is_alive():
+    if state.tbot_thread.is_alive() and isinstance(state.tbot_thread.ident, int):
         # Workaround to ensure the thread stops properly
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(state.tbot_thread.ident), ctypes.py_object(SystemExit))
         state.tbot_thread.join()
 
 if not enable_rcs:
     rcs_stop_flag.set()
-    if state.rcs_thread.is_alive():
+    if state.rcs_thread.is_alive() and isinstance(state.rcs_thread.ident, int):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(state.rcs_thread.ident), ctypes.py_object(SystemExit))
         state.rcs_thread.join()
 
 if not enable_esp:
     esp_stop_flag.set()
-    if state.esp_thread.is_alive():
+    if state.esp_thread.is_alive() and isinstance(state.esp_thread.ident, int):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(state.esp_thread.ident), ctypes.py_object(SystemExit))
         state.esp_thread.join()

@@ -1,3 +1,7 @@
+import time
+from typing import Any
+
+from pymem import Pymem
 from win32gui import GetForegroundWindow, GetWindowText
 
 from utils.mouse import move_mouse
@@ -25,11 +29,12 @@ offsets_dict = {
 offsets.add_offsets(offsets_dict)
 
 
-def rcs(pm, client, amt):
+def rcs(pm: Pymem, client: Any, amt: float) -> None:
     old_punch = Vec3(0.0, 0.0, 0.0)
     while True:
         try:
-            if not GetWindowText(GetForegroundWindow()) == "Counter-Strike 2":
+            if GetWindowText(GetForegroundWindow()) != "Counter-Strike 2":
+                time.sleep(0.05)
                 continue
 
             else:
@@ -42,7 +47,8 @@ def rcs(pm, client, amt):
 
                         punch_angle = Vec3()
 
-                        if local.AimPunchCache.Count <= 0 or local.AimPunchCache.Count > 0xFFFF:
+                        while local.AimPunchCache.Count <= 0 or local.AimPunchCache.Count > 0xFFFF:
+                            time.sleep(0.01)
                             continue
 
                         punch_angle = local.cache_to_punch()
@@ -69,8 +75,11 @@ def rcs(pm, client, amt):
                 else:
                     continue
 
+                time.sleep(0.001)
+
         except KeyboardInterrupt:
             break
 
         except Exception:
-            pass
+            time.sleep(0.01)
+            continue
