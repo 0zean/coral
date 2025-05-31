@@ -5,28 +5,9 @@ from pymem import Pymem
 from win32gui import GetForegroundWindow, GetWindowText
 
 from utils.mouse import move_mouse
-from utils.offsets import Client
+from utils.offsets import offsets
 from utils.player import PlayerPawn
-from utils.structs import Offsets, Vec3
-
-nv = Client()
-offsets = Offsets()
-
-offsets_dict = {
-    "dwEntityList": nv.offset("dwEntityList"),
-    "dwLocalPlayerPawn": nv.offset("dwLocalPlayerPawn"),
-    "dwSensitivity": nv.offset("dwSensitivity"),
-    "dwSensitivity_sensitivity": nv.offset("dwSensitivity_sensitivity"),
-    "m_iIDEntIndex": nv.get("C_CSPlayerPawnBase", "m_iIDEntIndex"),
-    "m_iTeamNum": nv.get("C_BaseEntity", "m_iTeamNum"),
-    "m_iHealth": nv.get("C_BaseEntity", "m_iHealth"),
-    "m_iShotsFired": nv.get("C_CSPlayerPawn", "m_iShotsFired"),
-    "m_aimPunchCache": nv.get("C_CSPlayerPawn", "m_aimPunchCache"),
-    "m_angEyeAngles": nv.get("C_CSPlayerPawnBase", "m_angEyeAngles"),
-    "m_aimPunchAngle": nv.get("C_CSPlayerPawn", "m_aimPunchAngle"),
-}
-
-offsets.add_offsets(offsets_dict)
+from utils.structs import Vec3
 
 
 def rcs(pm: Pymem, client: Any, amt: float) -> None:
@@ -62,9 +43,9 @@ def rcs(pm: Pymem, client: Any, amt: float) -> None:
                             )
 
                             move_mouse(
-                                int(((new_angle.y - local.ViewAngle.y) / local.ClientSensitivity) / -0.022),
-                                int(((new_angle.x - local.ViewAngle.x) / local.ClientSensitivity) / 0.022),
-                                False,
+                                x=int(((new_angle.y - local.ViewAngle.y) / local.ClientSensitivity) / -0.022),
+                                y=int(((new_angle.x - local.ViewAngle.x) / local.ClientSensitivity) / 0.022),
+                                set_last_moved=False,
                             )
 
                             old_punch = punch_angle

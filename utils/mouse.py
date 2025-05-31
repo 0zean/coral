@@ -20,11 +20,11 @@ class MOUSEINPUT(ctypes.Structure):
 
 
 class INPUT(ctypes.Structure):
-    class _INPUT_UNION(ctypes.Union):
+    class INPUT_UNION(ctypes.Union):
         _fields_ = [("mi", MOUSEINPUT)]
 
     _anonymous_ = ("u",)
-    _fields_ = [("type", ctypes.c_ulong), ("u", _INPUT_UNION)]
+    _fields_ = [("type", ctypes.c_ulong), ("u", INPUT_UNION)]
 
 
 # ctypes function prototypes
@@ -46,12 +46,12 @@ def create_mouse_input(flags: Literal[1], dx: int, dy: int, data: int, extra_inf
     mi = MOUSEINPUT(
         dx=dx, dy=dy, mouseData=data, dwFlags=flags, time=0, dwExtraInfo=ctypes.pointer(ctypes.c_ulong(extra_info))
     )
-    input = INPUT(type=0, u=INPUT._INPUT_UNION(mi=mi))
+    input = INPUT(type=0, u=INPUT.INPUT_UNION(mi=mi))
     return input
 
 
 # Function to send input
-def send_input(input) -> None:
+def send_input(input: INPUT) -> None:
     SendInput(1, ctypes.byref(input), ctypes.sizeof(input))
 
 

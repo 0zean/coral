@@ -3,26 +3,13 @@ from random import uniform
 from typing import Any
 
 import keyboard
-from pymem import Pymem
+from pymem import Pymem  # type: ignore
 from pynput.mouse import Button, Controller
 from win32gui import GetForegroundWindow, GetWindowText
 
-from utils.offsets import Client
-from utils.structs import Offsets
+from utils.offsets import offsets
 
 mouse = Controller()
-nv = Client()
-offsets = Offsets()
-
-offsets_dict = {
-    "dwEntityList": nv.offset("dwEntityList"),
-    "dwLocalPlayerPawn": nv.offset("dwLocalPlayerPawn"),
-    "m_iIDEntIndex": nv.get("C_CSPlayerPawnBase", "m_iIDEntIndex"),
-    "m_iTeamNum": nv.get("C_BaseEntity", "m_iTeamNum"),
-    "m_iHealth": nv.get("C_BaseEntity", "m_iHealth"),
-}
-
-offsets.add_offsets(offsets_dict)
 
 
 def trig(pm: Pymem, client: Any, triggerkey: str = "shift") -> None:

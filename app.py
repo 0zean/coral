@@ -3,7 +3,8 @@ import os
 import threading
 import time
 
-import pymem
+import pymem  # type: ignore
+import pymem.process  # type: ignore
 import streamlit as st
 
 from functions.esp import esp
@@ -22,9 +23,7 @@ if exit_app:
 try:
     pm = pymem.Pymem("cs2.exe")
     state.msg = st.toast("cs2.exe found! loading...", icon="🎉")
-    module = pymem.pymem.process.module_from_name(pm.process_handle, "client.dll")
-    if module:
-        client = module.lpBaseofDll
+    client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
     time.sleep(1)
     state.msg.toast("coral.py loaded", icon="💯")
 except pymem.pymem.exception.ProcessNotFound:
@@ -218,7 +217,7 @@ def run_esp() -> None:
 if "tbot_thread" not in state:
     state.tbot_thread = None
 
-state.trigkey = None
+state.trigkey = trigkey
 if trigkey != state.trigkey:
     state.trigkey = trigkey
     on_trigkey_change(trigkey)
@@ -226,7 +225,7 @@ if trigkey != state.trigkey:
 if "rcs_thread" not in state:
     state.rcs_thread = None
 
-state.amt = None
+state.amt = amt
 if amt != state.amt:
     state.amt = amt
     on_rcs_change(amt)

@@ -1,39 +1,19 @@
 import time
 from typing import Any
 
-import glfw
-import imgui
-import OpenGL.GL as gl
+import glfw  # type: ignore
+import imgui  # type: ignore
+import OpenGL.GL as gl  # type: ignore
 import win32con
 import win32gui
-from imgui.integrations.glfw import GlfwRenderer
-from pymem import Pymem
+from imgui.integrations.glfw import GlfwRenderer  # type: ignore
+from pymem import Pymem  # type: ignore
 from win32api import GetSystemMetrics
 
-from utils.offsets import Client
-from utils.structs import Offsets
+from utils.offsets import offsets
 
 ScreenY = GetSystemMetrics(0)
 ScreenX = GetSystemMetrics(1)
-
-nv = Client()
-offsets = Offsets()
-
-offsets_dict = {
-    "dwEntityList": nv.offset("dwEntityList"),
-    "dwLocalPlayerPawn": nv.offset("dwLocalPlayerPawn"),
-    "dwViewMatrix": nv.offset("dwViewMatrix"),
-    "m_lifeState": nv.get("C_BaseEntity", "m_lifeState"),
-    "m_pGameSceneNode": nv.get("C_BaseEntity", "m_pGameSceneNode"),
-    "m_modelState": nv.get("CSkeletonInstance", "m_modelState"),
-    "m_hPlayerPawn": nv.get("CCSPlayerController", "m_hPlayerPawn"),
-    "m_iIDEntIndex": nv.get("C_CSPlayerPawnBase", "m_iIDEntIndex"),
-    "m_iTeamNum": nv.get("C_BaseEntity", "m_iTeamNum"),
-    "m_iHealth": nv.get("C_BaseEntity", "m_iHealth"),
-    "m_iszPlayerName": nv.get("CBasePlayerController", "m_iszPlayerName"),
-}
-
-offsets.add_offsets(offsets_dict)
 
 
 def w2s(mtx: list[float], posx: float, posy: float, posz: float, width: int, height: int) -> list[float]:
