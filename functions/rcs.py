@@ -22,9 +22,9 @@ def rcs(pm: Pymem, client: Any, amt: float) -> None:
                 player = pm.read_longlong(client + offsets.dwLocalPlayerPawn)
 
                 if player:
-                    local = PlayerPawn(pm, player, client, offsets)
+                    local = PlayerPawn(pm, int(player), client, offsets)
 
-                    if local.get_aim_punch_cache() and local.get_view_angle() and local.get_shots_fired():
+                    if local.get_aim_punch_cache() and local.get_view_angle():
 
                         punch_angle = Vec3()
 

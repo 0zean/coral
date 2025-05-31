@@ -6,6 +6,8 @@ import time
 import pymem  # type: ignore
 import pymem.process  # type: ignore
 import streamlit as st
+from pymem.ressources.structure import MODULEINFO
+
 
 from functions.esp import esp
 from functions.rcs import rcs
@@ -23,12 +25,13 @@ if exit_app:
 try:
     pm = pymem.Pymem("cs2.exe")
     state.msg = st.toast("cs2.exe found! loading...", icon="🎉")
-    client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
+    module = pymem.process.module_from_name(pm.process_handle, "client.dll")
+    if isinstance(module, MODULEINFO):
+        client = module.lpBaseOfDll
     time.sleep(1)
     state.msg.toast("coral.py loaded", icon="💯")
 except pymem.pymem.exception.ProcessNotFound:
     st.error("cs2.exe not found!", icon="🚨")
-
 
 keys = [
     "shift",

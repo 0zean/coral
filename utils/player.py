@@ -40,7 +40,7 @@ class PlayerPawn:
 
     @pymem_exception
     def get_shots_fired(self) -> int:
-        return self.pm.read_int(self.address + self.offsets.m_iShotsFired)
+        return int(self.pm.read_int(self.address + self.offsets.m_iShotsFired))
 
     @pymem_exception
     def get_aim_punch_cache(self) -> C_UTL_VECTOR:
@@ -55,5 +55,5 @@ class PlayerPawn:
 
     @pymem_exception
     def get_sensitivity(self) -> float:
-        sensitivity_ptr = self.pm.read_longlong(self.client + self.offsets.dwSensitivity)
-        return self.pm.read_float(sensitivity_ptr + self.offsets.dwSensitivity_sensitivity)
+        sensitivity_ptr = int(self.pm.read_longlong(self.client + self.offsets.dwSensitivity))
+        return float(self.pm.read_float(sensitivity_ptr + self.offsets.dwSensitivity_sensitivity))
