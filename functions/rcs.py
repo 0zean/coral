@@ -1,7 +1,7 @@
 import time
 from typing import Any
 
-from pymem import Pymem
+from pymem import Pymem  # type: ignore
 from win32gui import GetForegroundWindow, GetWindowText
 
 from utils.mouse import move_mouse
@@ -19,7 +19,7 @@ def rcs(pm: Pymem, client: Any, amt: float) -> None:
                 continue
 
             else:
-                player = pm.read_longlong(client + offsets.dwLocalPlayerPawn)
+                player = pm.read_longlong(client + offsets["dwLocalPlayerPawn"])
 
                 if player:
                     local = PlayerPawn(pm, int(player), client, offsets)

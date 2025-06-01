@@ -1,42 +1,36 @@
 import json
 
-from .structs import Offsets
-
 
 class Client:
-    def __init__(self):
+    def __init__(self) -> None:
         try:
             with open("output/offsets.json") as f:
                 self.offsets = json.load(f)
-        except Exception as e:
-            print(f"Unable to get offsets: {e}")
-            exit()
-
-        try:
             with open("output/client_dll.json") as f:
                 self.clientdll = json.load(f)
         except Exception as e:
-            print(f"Unable to get client.dll: {e}")
-            exit()
+            raise RuntimeError(f"Failed to load offsets or client DLL: {e}")
 
-    def offset(self, a: str) -> int:
+    def offset(self, key: str) -> int:
         try:
-            return self.offsets["client.dll"][a]
+            return self.offsets["client.dll"][key]
+        except KeyError:
+            raise KeyError(f"Offset '{key}' not found in offsets.json")
         except Exception as e:
-            print(f"Offset {a} not found: {e}")
-            exit()
+            raise RuntimeError(f"Error retrieving offset '{key}': {e}")
 
-    def get(self, a: str, b: str) -> int:
+    def get(self, class_name: str, field_name: str) -> int:
         try:
-            return self.clientdll["client.dll"]["classes"][a]["fields"][b]
+            return self.clientdll["client.dll"]["classes"][class_name]["fields"][field_name]
+        except KeyError:
+            raise KeyError(f"Field '{field_name}' not found in class '{class_name}' in client_dll.json")
         except Exception as e:
-            print(f"Unable to get {a}, {b}: {e}")
-            exit()
+            raise RuntimeError(f"Error retrieving field '{field_name}' from class '{class_name}': {e}")
 
 
 nv = Client()
 
-offsets_dict = {
+offsets: dict[str, int] = {
     "dwEntityList": nv.offset("dwEntityList"),
     "dwLocalPlayerPawn": nv.offset("dwLocalPlayerPawn"),
     "dwSensitivity": nv.offset("dwSensitivity"),
@@ -55,6 +49,3 @@ offsets_dict = {
     "m_hPlayerPawn": nv.get("CCSPlayerController", "m_hPlayerPawn"),
     "m_iszPlayerName": nv.get("CBasePlayerController", "m_iszPlayerName"),
 }
-
-offsets = Offsets()
-offsets.add_offsets(offsets_dict)

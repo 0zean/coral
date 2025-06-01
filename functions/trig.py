@@ -19,20 +19,20 @@ def trig(pm: Pymem, client: Any, triggerkey: str = "shift") -> None:
                 continue
 
             if keyboard.is_pressed(triggerkey):
-                player = pm.read_longlong(client + offsets.dwLocalPlayerPawn)
-                entityId = pm.read_int(player + offsets.m_iIDEntIndex)
+                player = pm.read_longlong(client + offsets["dwLocalPlayerPawn"])
+                entityId = pm.read_int(int(player) + offsets["m_iIDEntIndex"])
 
                 if isinstance(entityId, int) and entityId > 0:
-                    entList = pm.read_longlong(client + offsets.dwEntityList)
+                    entList = pm.read_longlong(client + offsets["dwEntityList"])
 
                     entEntry = pm.read_longlong(int(entList) + 0x8 * (entityId >> 9) + 0x10)
                     entity = pm.read_longlong(int(entEntry) + 120 * (entityId & 0x1FF))
 
-                    entityTeam = pm.read_int(entity + offsets.m_iTeamNum)
-                    playerTeam = pm.read_int(player + offsets.m_iTeamNum)
+                    entityTeam = pm.read_int(int(entity) + offsets["m_iTeamNum"])
+                    playerTeam = pm.read_int(int(player) + offsets["m_iTeamNum"])
 
                     if entityTeam != playerTeam:
-                        entityHp = pm.read_int(entity + offsets.m_iHealth)
+                        entityHp = pm.read_int(int(entity) + offsets["m_iHealth"])
                         if isinstance(entityHp, int) and entityHp > 0:
                             time.sleep(uniform(0.01, 0.05))
                             mouse.press(Button.left)

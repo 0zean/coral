@@ -48,12 +48,12 @@ def pre_esp(pm: Pymem, client: Any, draw_list) -> None:
 
     for i in range(64):
 
-        temp_mat_val = pm.read_float(client + offsets.dwViewMatrix + i * 4)
+        temp_mat_val = pm.read_float(client + offsets["dwViewMatrix"] + i * 4)
         view_matrix.append(temp_mat_val)
 
     try:
-        local_player_pawn_addr = pm.read_longlong(client + offsets.dwLocalPlayerPawn)
-        local_player_team = pm.read_int(int(local_player_pawn_addr) + offsets.m_iTeamNum)
+        local_player_pawn_addr = pm.read_longlong(client + offsets["dwLocalPlayerPawn"])
+        local_player_team = pm.read_int(int(local_player_pawn_addr) + offsets["m_iTeamNum"])
     except Exception:
         print("You are not in game")
         time.sleep(7)
@@ -61,7 +61,7 @@ def pre_esp(pm: Pymem, client: Any, draw_list) -> None:
 
     for i in range(64):
 
-        entity = pm.read_longlong(client + offsets.dwEntityList)
+        entity = pm.read_longlong(client + offsets["dwEntityList"])
 
         if not entity:
             continue
@@ -76,7 +76,7 @@ def pre_esp(pm: Pymem, client: Any, draw_list) -> None:
         if not entity_controller:
             continue
 
-        entity_controller_pawn = pm.read_longlong(int(entity_controller) + offsets.m_hPlayerPawn)
+        entity_controller_pawn = pm.read_longlong(int(entity_controller) + offsets["m_hPlayerPawn"])
 
         if not entity_controller_pawn:
             continue
@@ -91,23 +91,23 @@ def pre_esp(pm: Pymem, client: Any, draw_list) -> None:
         if not entity_pawn_addr or entity_pawn_addr == local_player_pawn_addr:
             continue
 
-        entity_alive = pm.read_int(int(entity_pawn_addr) + offsets.m_lifeState)
+        entity_alive = pm.read_int(int(entity_pawn_addr) + offsets["m_lifeState"])
 
         if entity_alive != 256:
             continue
-        entity_team = pm.read_int(int(entity_pawn_addr) + offsets.m_iTeamNum)
+        entity_team = pm.read_int(int(entity_pawn_addr) + offsets["m_iTeamNum"])
         if entity_team == local_player_team:
             continue
 
-        player_name = pm.read_string(int(entity_controller) + offsets.m_iszPlayerName, 64)
+        player_name = pm.read_string(int(entity_controller) + offsets["m_iszPlayerName"], 64)
         player_name = player_name.split("\x00")[0]
 
-        health = pm.read_int(int(entity_pawn_addr) + offsets.m_iHealth)
+        health = pm.read_int(int(entity_pawn_addr) + offsets["m_iHealth"])
 
         color = imgui.core.get_color_u32_rgba(0, 0.7, 1, 1)
 
-        game_scene = pm.read_longlong(int(entity_pawn_addr) + offsets.m_pGameSceneNode)  # m_pGameSceneNode
-        bone_matrix = pm.read_longlong(int(game_scene) + offsets.m_modelState + 0x80)  # m_pBoneArray
+        game_scene = pm.read_longlong(int(entity_pawn_addr) + offsets["m_pGameSceneNode"])  # m_pGameSceneNode
+        bone_matrix = pm.read_longlong(int(game_scene) + offsets["m_modelState"] + 0x80)  # m_pBoneArray
 
         try:
             cou_bone = bonePos(pm, 5, int(bone_matrix))
