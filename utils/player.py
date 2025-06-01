@@ -5,7 +5,7 @@ from typing import Any
 import pymem.exception  # type: ignore
 from pymem import Pymem  # type: ignore
 
-from .structs import C_UTL_VECTOR, Offsets, Vec2, Vec3
+from .structs import C_UTL_VECTOR, Vec2, Vec3
 
 
 def pymem_exception(func):
@@ -19,7 +19,7 @@ def pymem_exception(func):
 
 
 class PlayerPawn:
-    def __init__(self, pm: Pymem, address: int, client: Any, offsets: Offsets):
+    def __init__(self, pm: Pymem, address: int, client: Any, offsets: dict[str, int]):
         self.pm = pm
         self.client = client
         self.address = address
@@ -32,19 +32,19 @@ class PlayerPawn:
 
     @pymem_exception
     def get_view_angle(self) -> Vec2:
-        return Vec2(*struct.unpack("ff", self.pm.read_bytes(self.address + self.offsets.m_angEyeAngles, 8)))
+        return Vec2(*struct.unpack("ff", self.pm.read_bytes(self.address + self.offsets["m_angEyeAngles"], 8)))
 
     @pymem_exception
     def get_aim_punch_angle(self) -> Vec3:
-        return Vec3(*struct.unpack("fff", self.pm.read_bytes(self.address + self.offsets.m_aimPunchAngle, 12)))
+        return Vec3(*struct.unpack("fff", self.pm.read_bytes(self.address + self.offsets["m_aimPunchAngle"], 12)))
 
     @pymem_exception
     def get_shots_fired(self) -> int:
-        return int(self.pm.read_int(self.address + self.offsets.m_iShotsFired))
+        return int(self.pm.read_int(self.address + self.offsets["m_iShotsFired"]))
 
     @pymem_exception
     def get_aim_punch_cache(self) -> C_UTL_VECTOR:
-        cache_bytes = self.pm.read_bytes(self.address + self.offsets.m_aimPunchCache, sizeof(C_UTL_VECTOR))
+        cache_bytes = self.pm.read_bytes(self.address + self.offsets["m_aimPunchCache"], sizeof(C_UTL_VECTOR))
         return C_UTL_VECTOR.from_buffer_copy(cache_bytes)
 
     @pymem_exception
@@ -55,5 +55,5 @@ class PlayerPawn:
 
     @pymem_exception
     def get_sensitivity(self) -> float:
-        sensitivity_ptr = int(self.pm.read_longlong(self.client + self.offsets.dwSensitivity))
-        return float(self.pm.read_float(sensitivity_ptr + self.offsets.dwSensitivity_sensitivity))
+        sensitivity_ptr = int(self.pm.read_longlong(self.client + self.offsets["dwSensitivity"]))
+        return float(self.pm.read_float(sensitivity_ptr + self.offsets["dwSensitivity_sensitivity"]))
