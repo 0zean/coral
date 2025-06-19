@@ -34,9 +34,9 @@ def trig(pm: Pymem, client: Any, triggerkey: str = "shift") -> None:
                     if entityTeam != playerTeam:
                         entityHp = pm.read_int(int(entity) + offsets["m_iHealth"])
                         if isinstance(entityHp, int) and entityHp > 0:
-                            time.sleep(uniform(0.01, 0.05))
+                            time.sleep(uniform(0.01, 0.03))
                             mouse.press(Button.left)
-                            time.sleep(uniform(0.01, 0.07))
+                            time.sleep(uniform(0.01, 0.05))
                             mouse.release(Button.left)
 
                 time.sleep(0.03)
