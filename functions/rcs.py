@@ -15,48 +15,42 @@ def rcs(pm: Pymem, client: Any, amt: float) -> None:
     while True:
         try:
             if GetWindowText(GetForegroundWindow()) != "Counter-Strike 2":
-                time.sleep(0.05)
                 continue
 
             else:
                 player = pm.read_longlong(client + offsets["dwLocalPlayerPawn"])
 
-                if player:
-                    local = PlayerPawn(pm, int(player), client, offsets)
+                if player and isinstance(player, int):
+                    local = PlayerPawn(pm, player, client, offsets)
 
                     if local.get_aim_punch_cache() and local.get_view_angle():
 
                         punch_angle = Vec3()
 
-                        while local.AimPunchCache.Count <= 0 or local.AimPunchCache.Count > 0xFFFF:
-                            time.sleep(0.01)
-                            continue
+                        if not local.AimPunchCache.Count <= 0 or local.AimPunchCache.Count > 0xFFFF: 
+                            punch_angle = local.cache_to_punch()
 
-                        punch_angle = local.cache_to_punch()
+                            if local.get_shots_fired() and local.get_shots_fired() > 1:
 
-                        if local.get_shots_fired() > 1:
+                                new_punch = Vec3(punch_angle.x - old_punch.x, punch_angle.y - old_punch.y, 0)
 
-                            new_punch = Vec3(punch_angle.x - old_punch.x, punch_angle.y - old_punch.y, 0)
+                                new_angle = Vec3(
+                                    local.ViewAngle.x - new_punch.x * amt, local.ViewAngle.y - new_punch.y * amt, 0
+                                )
 
-                            new_angle = Vec3(
-                                local.ViewAngle.x - new_punch.x * amt, local.ViewAngle.y - new_punch.y * amt, 0
-                            )
+                                move_mouse(
+                                    x=int(((new_angle.y - local.ViewAngle.y) / local.ClientSensitivity) / -0.022),
+                                    y=int(((new_angle.x - local.ViewAngle.x) / local.ClientSensitivity) / 0.022),
+                                    set_last_moved=False,
+                                )
 
-                            move_mouse(
-                                x=int(((new_angle.y - local.ViewAngle.y) / local.ClientSensitivity) / -0.022),
-                                y=int(((new_angle.x - local.ViewAngle.x) / local.ClientSensitivity) / 0.022),
-                                set_last_moved=False,
-                            )
+                                old_punch = punch_angle
 
-                            old_punch = punch_angle
-
-                        else:
-                            old_punch = punch_angle
+                            else:
+                                old_punch = punch_angle
 
                 else:
                     continue
-
-                time.sleep(0.001)
 
         except KeyboardInterrupt:
             break
