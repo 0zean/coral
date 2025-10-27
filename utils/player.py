@@ -24,11 +24,43 @@ class PlayerPawn:
         self.client = client
         self.address = address
         self.offsets = offsets
+        self._cache = {}
         self.ViewAngle = self.get_view_angle()
         self.AimPunchAngle = self.get_aim_punch_angle()
         self.ShotsFired = self.get_shots_fired()
         self.AimPunchCache = self.get_aim_punch_cache()
-        self.ClientSensitivity = self.get_sensitivity()
+        self.origin = self.get_origin()
+        self.refresh()
+
+    def refresh(self) -> None:
+        self._cache["team"] = self.pm.read_int(self.address + self.offsets["m_iTeamNum"])
+        self._cache["health"] = self.pm.read_int(self.address + self.offsets["m_iHealth"])
+        self._cache["life_state"] = self.pm.read_int(self.address + self.offsets["m_lifeState"])
+
+        sensitivity_ptr = self.pm.read_longlong(self.client + self.offsets["dwSensitivity"])
+        self._cache["client_sensitivity"] = self.pm.read_float(
+            sensitivity_ptr + self.offsets["dwSensitivity_sensitivity"]
+        )
+
+    @property
+    def team(self) -> int:
+        return self._cache["team"]
+
+    @property
+    def health(self) -> int:
+        return self._cache["health"]
+
+    @property
+    def life_state(self) -> int:
+        return self._cache["life_state"]
+
+    @property
+    def client_sensitivity(self) -> float:
+        return self._cache["client_sensitivity"]
+
+    @pymem_exception
+    def get_origin(self) -> Vec3:
+        return Vec3(*struct.unpack("fff", self.pm.read_bytes(self.address + self.offsets["m_vOldOrigin"], 12)))
 
     @pymem_exception
     def get_view_angle(self) -> Vec2:
@@ -40,7 +72,7 @@ class PlayerPawn:
 
     @pymem_exception
     def get_shots_fired(self) -> int:
-        return int(self.pm.read_int(self.address + self.offsets["m_iShotsFired"]))
+        return self.pm.read_int(self.address + self.offsets["m_iShotsFired"])
 
     @pymem_exception
     def get_aim_punch_cache(self) -> C_UTL_VECTOR:
@@ -52,8 +84,3 @@ class PlayerPawn:
         punch_angle_ptr = self.AimPunchCache.Data + (self.AimPunchCache.Count - 1) * sizeof(Vec3)
         punch_angle_bytes = self.pm.read_bytes(punch_angle_ptr, sizeof(Vec3))
         return Vec3.from_buffer_copy(punch_angle_bytes)
-
-    @pymem_exception
-    def get_sensitivity(self) -> float:
-        sensitivity_ptr = int(self.pm.read_longlong(self.client + self.offsets["dwSensitivity"]))
-        return float(self.pm.read_float(sensitivity_ptr + self.offsets["dwSensitivity_sensitivity"]))
