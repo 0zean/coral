@@ -1,43 +1,30 @@
 [project]
 name = "coral"
 version = "0.1.0"
-description = ""
-authors = [
-    {name = "0zean",email = "42080997+0zean@users.noreply.github.com"}
-]
+description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11.11"
 dependencies = [
-    "keyboard (==0.13.5)",
-    "pynput (==1.7.7)",
-    "pywin32 (==308)",
-    "Pymem (==1.13.1)",
-    "streamlit (==1.38.0)",
-    "glfw (>=2.7.0)",
-    "imgui (>=2.0.0)",
-    "PyOpenGL( >=3.1.7)",
+    "glfw>=2.10.0",
+    "imgui>=2.0.0",
+    "keyboard>=0.13.5",
+    "pymem>=1.14.0",
+    "pynput>=1.8.1",
+    "pyopengl>=3.1.10",
+    "pywin32>=311",
+    "raylib-py>=5.5.0",
+    "streamlit>=1.50.0",
 ]
 
-[tool.poetry]
-package-mode = false
+[dependency-groups]
+dev = [
+    "ruff>=0.14.2",
+]
 
-[tool.poetry.group.dev.dependencies]
-black = ">=25.1.0"
-isort = ">=6.0.0,<7.0.0"
-pylint = "^3.3.3"
-flake8 = "^7.1.0"
-flake8-pyproject = "^1.2.3"
-mypy = "^1.15.0"
-
-[tool.black]
+[tool.ruff]
+exclude = [".venv"]
+respect-gitignore = true
 line-length = 120
-target-version = ['py310']
-include = '\.pyi?$'
-
-[tool.isort]
-profile = "black"
-line_length = 120
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+lint.ignore = [
+    "F403"
+]
