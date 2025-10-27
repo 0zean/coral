@@ -8,10 +8,10 @@ import pymem.process  # type: ignore
 import streamlit as st
 from pymem.ressources.structure import MODULEINFO
 
-
-from functions.esp import esp
+from functions.esp import ESPController
 from functions.rcs import rcs
 from functions.trig import trig
+from utils.config import config
 
 st.set_page_config(page_title="CORAL.py", page_icon="🐠", layout="centered", initial_sidebar_state="collapsed")
 state = st.session_state
@@ -33,104 +33,15 @@ try:
 except pymem.pymem.exception.ProcessNotFound:
     st.error("cs2.exe not found!", icon="🚨")
 
-keys = [
-    "shift",
-    "x",
-    "x2",
-    "alt",
-    "ctrl",
-    "insert",
-    "home",
-    "page up",
-    "delete",
-    "end",
-    "page down",
-    "f1",
-    "f2",
-    "f3",
-    "f4",
-    "f5",
-    "f6",
-    "f7",
-    "f8",
-    "f9",
-    "f10",
-    "f11",
-    "f12",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "0",
-    "up",
-    "left",
-    "down",
-    "right",
-    "q",
-    "w",
-    "e",
-    "r",
-    "t",
-    "y",
-    "u",
-    "i",
-    "o",
-    "p",
-    "a",
-    "s",
-    "d",
-    "f",
-    "g",
-    "h",
-    "j",
-    "k",
-    "l",
-    "z",
-    "x",
-    "c",
-    "v",
-    "b",
-    "n",
-    "m",
-    "-",
-    "=",
-    "backspace",
-    "tab",
-    "[",
-    "]",
-    "caps lock",
-    ";",
-    "'",
-    "enter",
-    ",",
-    ".",
-    "/",
-    "num lock",
-    "/",
-    "*",
-    "-",
-    "+",
-    "enter",
-    "scroll lock",
-    "pause",
-    "`",
-    ".",
-]
 
 # App design + layout
 with open("assets/style.css") as f:
     css = f.read()
 
 # Custom title using CSS file
-st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
-st.markdown(
-    '<h1 class="title-font">C<span style="color:#fdc4b6;">o</span><span style="color:#e59572;">r</span><span style="color:#2694ab;">a</span><span style="color:#4dbedf;">l</span>🐠</h1>',
-    unsafe_allow_html=True,
+st.html(f"<style>{css}</style>")
+st.html(
+    '<h1 class="title-font">C<span style="color:#fdc4b6;">o</span><span style="color:#e59572;">r</span><span style="color:#2694ab;">a</span><span style="color:#4dbedf;">l</span>🐠</h1>'
 )
 
 ballons = st.balloons()
@@ -159,7 +70,7 @@ with tab1:
     with col2:
         trigkey = st.selectbox(
             "Trigger bot key (*x* and *x2* are mouse side-butttons)",
-            keys,
+            config.keys,
             placeholder="Choose a key",
             disabled=state.disable_keys,
         )
@@ -213,7 +124,8 @@ def on_rcs_change(new_amt: float) -> None:
 def run_esp() -> None:
     while not esp_stop_flag.is_set():
         if enable_esp:
-            esp(pm, client)
+            esp_controller = ESPController(pm, client)
+            esp_controller.run_esp()
 
 
 # Create a session state objects
