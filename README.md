@@ -2,11 +2,9 @@
     <img src="/assets/banner.png" width="450"/>
 </h1>
 
-
 <p align="center">
     <a href="https://raw.githubusercontent.com/0zean/coral/main/LICENSE" target="_blank">MIT License</a>
 </p>
-
 
 <div align="center">
     <img src="https://img.shields.io/github/stars/0zean/oasis?style=for-the-badge&logo=github&color=ea7070"/>
@@ -14,7 +12,6 @@
     <img src="https://img.shields.io/github/commit-activity/t/0zean/oasis?style=for-the-badge&logo=github&color=e59572"/>
     <img src="https://img.shields.io/github/forks/0zean/oasis?style=for-the-badge&logo=github&color=4dbedf"/>
 </div>
-
 
 A streamlit web-app framework for Counter-Strike 2 mods built using Python. **For Educational purposes only.**
 
@@ -29,11 +26,11 @@ You'll need [a2x's cs2-dumper](https://github.com/a2x/cs2-dumper) for updating o
 Once downloaded, place it in the same folder as this repo after cloning.
 
 ## 🎚️ Features:
+
 - [x] RCS (amount slider)
 - [x] Trigger Bot (trigger key)
-- [X] ESP (box, health, name, skeleton) 
+- [x] ESP (box, health, name, skeleton)
 - [ ] Misc
-
 
 ### 🧬 1. Clone the Repo
 
@@ -41,25 +38,15 @@ Once downloaded, place it in the same folder as this repo after cloning.
 git clone https://github.com/0zean/coral.git
 ```
 
-### 🛠️ 2. Create virtual 
+### 🛠️ + 📦 2. Create virtual env & install libraries
 
-Using pyenv, create a new virtual environment:
-
-```bash
-pyenv local 3.10.11
-python -m venv .venv
-```
-
-### 📦 3. Install libraries
-
-Install dependencies via `poetry`:
+Simultaneously create venv and install dependencies via `uv` (make sure [uv](https://docs.astral.sh/uv/getting-started/installation/) is installed first):
 
 ```bash
-pip install poetry
-poetry install
+uv sync
 ```
 
-### 🚀 4. Run the application
+### 🚀 3. Run the application
 
 To start the streamlit app, have CS2 running and double-click `start.bat`. This will run the offset dumper and start the streamlit server.
 
