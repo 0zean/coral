@@ -16,6 +16,7 @@ try:
         FLAG_WINDOW_TRANSPARENT,
         FLAG_WINDOW_UNDECORATED,
         LOG_NONE,
+        Color,
         begin_drawing,
         clear_background,
         close_window,
@@ -75,6 +76,6 @@ class ESPController:
             begin_drawing()
             clear_background((0, 0, 0, 0))  # type: ignore
             for entity in entities:
-                renderer.draw_entity(entity, (0, 180, 255, 255))
+                renderer.draw_entity(entity, Color(0, 180, 255, 255))
             end_drawing()
         close_window()
