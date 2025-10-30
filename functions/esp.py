@@ -1,24 +1,34 @@
 import ctypes
+import io
 import struct
 import sys
 from typing import Any
 
 from pymem import Pymem
-from raylibpy import (
-    FLAG_WINDOW_TOPMOST,
-    FLAG_WINDOW_TRANSPARENT,
-    FLAG_WINDOW_UNDECORATED,
-    LOG_NONE,
-    begin_drawing,
-    clear_background,
-    close_window,
-    end_drawing,
-    init_window,
-    set_target_fps,
-    set_trace_log_level,
-    set_window_state,
-    window_should_close,
-)
+
+_stdout = sys.stdout
+_stderr = sys.stderr
+sys.stdout = io.StringIO()
+sys.stderr = io.StringIO()
+try:
+    from raylibpy import (
+        FLAG_WINDOW_TOPMOST,
+        FLAG_WINDOW_TRANSPARENT,
+        FLAG_WINDOW_UNDECORATED,
+        LOG_NONE,
+        begin_drawing,
+        clear_background,
+        close_window,
+        end_drawing,
+        init_window,
+        set_target_fps,
+        set_trace_log_level,
+        set_window_state,
+        window_should_close,
+    )
+finally:
+    sys.stdout = _stdout
+    sys.stderr = _stderr
 
 from utils.config import config
 from utils.entity import EntityManager
@@ -63,7 +73,7 @@ class ESPController:
             renderer = ESPRenderer(self.screen_width, self.screen_height, view_matrix)
             entities = self.entity_manager.get_entities()
             begin_drawing()
-            clear_background((0, 0, 0, 0))
+            clear_background((0, 0, 0, 0))  # type: ignore
             for entity in entities:
                 renderer.draw_entity(entity, (0, 180, 255, 255))
             end_drawing()
