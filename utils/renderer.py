@@ -1,4 +1,4 @@
-from raylibpy import draw_circle_lines, draw_line, draw_rectangle_lines, draw_text
+from raylibpy import Color, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text
 
 from utils.entity import Entity
 from utils.visuals import w2s
@@ -10,7 +10,7 @@ class ESPRenderer:
         self.screen_height = screen_height
         self.view_matrix = view_matrix
 
-    def draw_entity(self, entity: Entity, color: tuple[int, int, int, int]) -> None:
+    def draw_entity(self, entity: Entity, color: Color) -> None:
         bones = entity.bones
 
         def proj(bone):
@@ -82,12 +82,18 @@ class ESPRenderer:
 
             # Draw Health Bar
             health = entity.health
-            health_color = (0, 200, 0, 255) if health >= 70 else (255, 140, 0, 255) if health > 30 else (255, 0, 0, 255)
+            health_color = (
+                Color(0, 200, 0, 255)
+                if health >= 70
+                else Color(255, 140, 0, 255)
+                if health > 30
+                else Color(255, 0, 0, 255)
+            )
             scaled_health_pos = head_pos[1] + ((100 - int(health)) / 100.0) * delta_z
             draw_line(int(left_x - 5), int(scaled_health_pos), int(left_x - 5), int(leg_pos[1]), health_color)
-            draw_text(f"HP: {health}", int(left_x), int(bottom_y), 10, (255, 255, 0, 255))
+            draw_text(f"HP: {health}", int(left_x), int(bottom_y), 10, Color(255, 255, 0, 255))
 
             # Name
-            draw_text(entity.name, int(left_x), int(top_y), 12, (255, 255, 0, 255))
+            draw_text(entity.name, int(left_x), int(top_y), 12, Color(255, 255, 0, 255))
         except Exception as e:
             print(f"Error drawing entity: {e}")
