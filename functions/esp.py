@@ -74,7 +74,7 @@ class ESPController:
             renderer = ESPRenderer(self.screen_width, self.screen_height, view_matrix)
             entities = self.entity_manager.get_entities()
             begin_drawing()
-            clear_background((0, 0, 0, 0))  # type: ignore
+            clear_background(Color(0, 0, 0, 0))
             for entity in entities:
                 renderer.draw_entity(entity, Color(0, 180, 255, 255))
             end_drawing()
