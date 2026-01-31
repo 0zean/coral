@@ -29,7 +29,7 @@ class ESPRenderer:
             leg_bone = bones["leg"]
 
             head_x, head_y, head_z = bones["head"]
-            head_z += 8
+            head_z += 8.0
 
             head_pos = w2s(
                 self.view_matrix,
@@ -51,7 +51,7 @@ class ESPRenderer:
             delta_z = abs(head_pos[1] - leg_pos[1])
             left_x = head_pos[0] - delta_z // 3.5
             right_x = head_pos[0] + delta_z // 3.5
-            top_y = head_pos[1] - 12
+            top_y = head_pos[1] - 12.0
             bottom_y = head_pos[1] + delta_z
 
             bone_connections = [
@@ -74,7 +74,7 @@ class ESPRenderer:
 
             # Draw Box
             draw_rectangle_lines(
-                int(left_x), int(head_pos[1]), int(right_x - left_x), int(bottom_y - head_pos[1] + 7), color
+                int(left_x), int(head_pos[1]), int(right_x - left_x), int(bottom_y - head_pos[1] + 7.0), color
             )
 
             # Draw Head Circle
@@ -84,9 +84,9 @@ class ESPRenderer:
             health = entity.health
             health_color = (
                 Color(0, 200, 0, 255)
-                if health >= 70
+                if health >= 70.0
                 else Color(255, 140, 0, 255)
-                if health > 30
+                if health > 30.0
                 else Color(255, 0, 0, 255)
             )
             scaled_health_pos = head_pos[1] + ((100 - int(health)) / 100.0) * delta_z

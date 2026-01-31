@@ -41,7 +41,7 @@ if %ERRORLEVEL% equ 0 (
 :::   \/_____/   \/_____/   \/_/ /_/   \/_/\/_/   \/_____/ 
 for /f "delims=: tokens=*" %%A in ('findstr /b ::: "%~f0"') do @echo %%A                                                 
 
-REM Navigate to the directory and activate conda environment
+REM Navigate to the directory and activate virtual environment
 cd "..\coral"
 call .\.venv\Scripts\activate
 

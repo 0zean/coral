@@ -1,3 +1,4 @@
+import threading
 import time
 from typing import Any
 
@@ -8,21 +9,29 @@ from utils.mouse import get_mouse_pos, move_mouse_to_location
 from utils.offsets import offsets
 from utils.player import PlayerPawn
 from utils.structs import Vec2
+from utils.thread_manager import ThreadConfig
 
 
-def rcs(pm: Pymem, client: Any, amt: float, smoothing: float = 1.0) -> None:
+def rcs(stop_event: threading.Event, config: ThreadConfig, pm: Pymem, client: Any, smoothing: float = 1.0) -> None:
     """
     Recoil control system function.
 
     Args:
+        stop_event (threading.Event): Event to signal stopping.
+        config (ThreadConfig): Shared configuration.
         pm (Pymem): Pymem instance.
         client (Any): Client module base address.
-        amt (float): Recoil control amount.
         smoothing (float, optional): Smoothing factor. Defaults to 1.0.
     """
     old_punch = Vec2(0.0, 0.0)
-    while True:
+    while not stop_event.is_set():
         try:
+            if not config.enable_rcs:
+                time.sleep(0.1)
+                continue
+
+            amt = config.rcs_amount
+
             if GetWindowText(GetForegroundWindow()) != "Counter-Strike 2":
                 time.sleep(0.005)
                 continue

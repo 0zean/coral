@@ -2,6 +2,7 @@ import ctypes
 import io
 import struct
 import sys
+import threading
 from typing import Any
 
 from pymem import Pymem
@@ -49,7 +50,7 @@ class ESPController:
         data = self.pm.read_bytes(self.client + offsets["dwViewMatrix"], 64)
         return struct.unpack("16f", data)
 
-    def run_esp(self) -> None:
+    def run_esp(self, stop_event: threading.Event, config: Any) -> None:
         set_trace_log_level(LOG_NONE)
         init_window(self.screen_width, self.screen_height, b"ESP Overlay")
         set_target_fps(60)
@@ -69,7 +70,11 @@ class ESPController:
             LWA_COLORKEY = 0x1
             ctypes.windll.user32.SetLayeredWindowAttributes(hwnd, 0x000000, 0, LWA_COLORKEY)
 
-        while not window_should_close():
+        while not window_should_close() and not stop_event.is_set():
+            if not config.enable_esp:
+                clear_background(Color(0, 0, 0, 0))
+                end_drawing()
+                continue
             view_matrix = self.get_view_matrix()
             renderer = ESPRenderer(self.screen_width, self.screen_height, view_matrix)
             entities = self.entity_manager.get_entities()

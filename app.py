@@ -1,6 +1,4 @@
-import ctypes
 import os
-import threading
 import time
 
 import pymem  # type: ignore
@@ -12,26 +10,46 @@ from functions.esp import ESPController
 from functions.rcs import rcs
 from functions.trig import trig
 from utils.config import config
+from utils.thread_manager import ThreadManager
 
 st.set_page_config(page_title="CORAL.py", page_icon="🐠", layout="centered", initial_sidebar_state="collapsed")
 state = st.session_state
 
+# Initialize ThreadManager in session state
+if "thread_manager" not in state:
+    state.thread_manager = ThreadManager()
+
 exit_app = st.sidebar.button("Shut Down")
 
 if exit_app:
-    time.sleep(3)
+    state.thread_manager.stop_all()
+    time.sleep(1)
     os._exit(0)
 
 try:
     pm = pymem.Pymem("cs2.exe")
-    state.msg = st.toast("cs2.exe found! loading...", icon="🎉")
-    module = pymem.process.module_from_name(pm.process_handle, "client.dll")
-    if isinstance(module, MODULEINFO):
-        client = module.lpBaseOfDll
-    time.sleep(1)
-    state.msg.toast("coral.py loaded", icon="💯")
+    # Only show toast once
+    if "loaded" not in state:
+        state.msg = st.toast("cs2.exe found! loading...", icon="🎉")
+        module = pymem.process.module_from_name(pm.process_handle, "client.dll")
+        if isinstance(module, MODULEINFO):
+            client = module.lpBaseOfDll
+            state.client = client
+            state.pm = pm
+        time.sleep(1)
+        state.msg.toast("coral.py loaded", icon="💯")
+        state.loaded = True
+    else:
+        # Restore from state if they exist
+        if "pm" in state:
+            pm = state.pm
+        if "client" in state:
+            client = state.client
+
 except pymem.pymem.exception.ProcessNotFound:
     st.error("cs2.exe not found!", icon="🚨")
+    # Stop execution of the rest of the app if not found, to avoid errors
+    st.stop()
 
 
 # App design + layout
@@ -53,19 +71,26 @@ with tab1:
 
     with col1:
         enable_trigger = st.toggle("Enable trigger bot")
+        state.thread_manager.config.enable_trigger = enable_trigger
+
         if not enable_trigger:
             state.disable_keys = True
         else:
             state.disable_keys = False
+            # Start trigger thread if not running
+            if not state.thread_manager.is_running("tbot"):
+                state.thread_manager.start_thread("tbot", trig, (pm, client))
 
         enable_rcs = st.toggle("Enable RCS")
+        state.thread_manager.config.enable_rcs = enable_rcs
+
         if not enable_rcs:
             state.disable_slider = True
         else:
             state.disable_slider = False
-
-        state.enable_trigger = enable_trigger
-        state.enable_rcs = enable_rcs
+            # Start RCS thread if not running
+            if not state.thread_manager.is_running("rcs"):
+                state.thread_manager.start_thread("rcs", rcs, (pm, client))
 
     with col2:
         trigkey = st.selectbox(
@@ -74,111 +99,31 @@ with tab1:
             placeholder="Choose a key",
             disabled=state.disable_keys,
         )
+        # Update config directly
+        state.thread_manager.config.trigger_key = trigkey
+
         amt = st.slider("RCS Amount", 0.0, 2.0, 2.0, 0.1, disabled=state.disable_slider)
+        # Update config directly
+        state.thread_manager.config.rcs_amount = amt
 
 with tab2:
     enable_esp = st.toggle("Enable ESP")
-    state.enable_esp = enable_esp
+    state.thread_manager.config.enable_esp = enable_esp
 
+    if enable_esp:
 
-# Create shared variables to signal the threads to stop
-trigger_stop_flag = threading.Event()
-rcs_stop_flag = threading.Event()
-esp_stop_flag = threading.Event()
-
-
-def run_trigger() -> None:
-    while not trigger_stop_flag.is_set():
-        if enable_trigger:
-            trig(pm, client, trigkey)
-
-
-def on_trigkey_change(new_key: str) -> None:
-    # Check if tbot is running and stop it
-    if state.tbot_thread is not None and state.tbot_thread.is_alive():
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(state.tbot_thread.ident), ctypes.py_object(SystemExit))
-        state.tbot_thread.join()
-
-    # Refresh tbot with updated key
-    state.tbot_thread = threading.Thread(target=run_trigger)
-    state.tbot_thread.start()
-
-
-def run_rcs() -> None:
-    while not rcs_stop_flag.is_set():
-        if enable_rcs:
-            rcs(pm, client, amt)
-
-
-def on_rcs_change(new_amt: float) -> None:
-    # Check if rcs is running and stop it
-    if state.rcs_thread is not None and state.rcs_thread.is_alive():
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(state.rcs_thread.ident), ctypes.py_object(SystemExit))
-        state.rcs_thread.join()
-
-    # Refresh rcs with new amt
-    state.rcs_thread = threading.Thread(target=run_rcs)
-    state.rcs_thread.start()
-
-
-def run_esp() -> None:
-    while not esp_stop_flag.is_set():
-        if enable_esp:
+        def run_esp_wrapper(stop_event, config, pm, client):
             esp_controller = ESPController(pm, client)
-            esp_controller.run_esp()
+            esp_controller.run_esp(stop_event, config)
 
+        if not state.thread_manager.is_running("esp"):
+            state.thread_manager.start_thread("esp", run_esp_wrapper, (pm, client))
 
-# Create a session state objects
-if "tbot_thread" not in state:
-    state.tbot_thread = None
+if not enable_trigger and state.thread_manager.is_running("tbot"):
+    state.thread_manager.stop_thread("tbot")
 
-state.trigkey = trigkey
-if trigkey != state.trigkey:
-    state.trigkey = trigkey
-    on_trigkey_change(trigkey)
+if not enable_rcs and state.thread_manager.is_running("rcs"):
+    state.thread_manager.stop_thread("rcs")
 
-if "rcs_thread" not in state:
-    state.rcs_thread = None
-
-state.amt = amt
-if amt != state.amt:
-    state.amt = amt
-    on_rcs_change(amt)
-
-if "esp_thread" not in state:
-    state.esp_thread = None
-
-
-# Check if the threads are running and start them if needed
-if state.tbot_thread is None or not state.tbot_thread.is_alive():
-    state.tbot_thread = threading.Thread(target=run_trigger)
-    state.tbot_thread.start()
-
-if state.rcs_thread is None or not state.rcs_thread.is_alive():
-    state.rcs_thread = threading.Thread(target=run_rcs)
-    state.rcs_thread.start()
-
-if state.esp_thread is None or not state.esp_thread.is_alive():
-    state.esp_thread = threading.Thread(target=run_esp)
-    state.esp_thread.start()
-
-
-# Check if the checkboxes are unchecked and set the stop flags
-if not enable_trigger:
-    trigger_stop_flag.set()
-    if state.tbot_thread.is_alive() and isinstance(state.tbot_thread.ident, int):
-        # Workaround to ensure the thread stops properly
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(state.tbot_thread.ident), ctypes.py_object(SystemExit))
-        state.tbot_thread.join()
-
-if not enable_rcs:
-    rcs_stop_flag.set()
-    if state.rcs_thread.is_alive() and isinstance(state.rcs_thread.ident, int):
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(state.rcs_thread.ident), ctypes.py_object(SystemExit))
-        state.rcs_thread.join()
-
-if not enable_esp:
-    esp_stop_flag.set()
-    if state.esp_thread.is_alive() and isinstance(state.esp_thread.ident, int):
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(state.esp_thread.ident), ctypes.py_object(SystemExit))
-        state.esp_thread.join()
+if not enable_esp and state.thread_manager.is_running("esp"):
+    state.thread_manager.stop_thread("esp")

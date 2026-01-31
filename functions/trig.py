@@ -13,18 +13,31 @@ from utils.player import PlayerPawn
 mouse = Controller()
 
 
-def trig(pm: Pymem, client: Any, triggerkey: str = "shift") -> None:
+import threading
+
+from utils.thread_manager import ThreadConfig
+
+
+def trig(stop_event: threading.Event, config: ThreadConfig, pm: Pymem, client: Any) -> None:
     """
     Trigger bot function.
 
     Args:
+        stop_event (threading.Event): Event to signal stopping.
+        config (ThreadConfig): Shared configuration.
         pm (Pymem): Pymem instance.
         client (Any): Client module base address.
-        triggerkey (str, optional): Key to activate trigger bot. Defaults to "shift".
     """
-    while True:
+    while not stop_event.is_set():
         try:
             if not GetWindowText(GetForegroundWindow()) == "Counter-Strike 2":
+                time.sleep(0.1)
+                continue
+
+            # Read from config
+            triggerkey = config.trigger_key
+            if not config.enable_trigger:
+                time.sleep(0.1)
                 continue
 
             player = pm.read_longlong(client + offsets["dwLocalPlayerPawn"])
