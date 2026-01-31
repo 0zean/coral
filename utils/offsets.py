@@ -40,7 +40,6 @@ offsets: dict[str, int] = {
     "m_iTeamNum": nv.get("C_BaseEntity", "m_iTeamNum"),
     "m_iHealth": nv.get("C_BaseEntity", "m_iHealth"),
     "m_iShotsFired": nv.get("C_CSPlayerPawn", "m_iShotsFired"),
-    "m_aimPunchCache": nv.get("C_CSPlayerPawn", "m_aimPunchCache"),
     "m_angEyeAngles": nv.get("C_CSPlayerPawn", "m_angEyeAngles"),
     "m_aimPunchAngle": nv.get("C_CSPlayerPawn", "m_aimPunchAngle"),
     "m_vOldOrigin": nv.get("C_BasePlayerPawn", "m_vOldOrigin"),
