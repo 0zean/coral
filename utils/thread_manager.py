@@ -1,6 +1,6 @@
 import threading
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Callable
 
 
 @dataclass
