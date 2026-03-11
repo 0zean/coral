@@ -65,7 +65,8 @@ class EntityManager:
             if entity_team == local_team:
                 continue
 
-            name = self.pm.read_string(entity_controller + self.offsets["m_iszPlayerName"], 64).split("\x00")[0]
+            raw_name = self.pm.read_bytes(entity_controller + self.offsets["m_iszPlayerName"], 64)
+            name = raw_name.split(b"\x00")[0].decode("utf-8", "ignore")
             health = self.pm.read_int(entity_pawn_addr + self.offsets["m_iHealth"])
             game_scene = self.pm.read_longlong(entity_pawn_addr + self.offsets["m_pGameSceneNode"])
             bone_matrix = self.pm.read_longlong(game_scene + self.offsets["m_modelState"] + 0x80)

@@ -1,14 +1,15 @@
-from raylibpy import Color, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text
+from raylibpy import Color, Vector2, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, draw_text_ex
 
 from utils.entity import Entity
 from utils.visuals import w2s
 
 
 class ESPRenderer:
-    def __init__(self, screen_width: int, screen_height: int, view_matrix: tuple[float, ...]) -> None:
+    def __init__(self, screen_width: int, screen_height: int, view_matrix: tuple[float, ...], font: any = None) -> None:
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.view_matrix = view_matrix
+        self.font = font
 
     def draw_entity(self, entity: Entity, color: Color) -> None:
         bones = entity.bones
@@ -48,37 +49,61 @@ class ESPRenderer:
                 self.screen_height,
             )
 
-            delta_z = abs(head_pos[1] - leg_pos[1])
-            left_x = head_pos[0] - delta_z // 3.5
-            right_x = head_pos[0] + delta_z // 3.5
-            top_y = head_pos[1] - 12.0
-            bottom_y = head_pos[1] + delta_z
+            # Early exit if both head and legs are off-screen, skip drawing this entity
+            if head_pos == [-999, -999] and leg_pos == [-999, -999]:
+                return
 
             bone_connections = [
-                (neck[0], neck[1], right_shoulder[0], right_shoulder[1]),
-                (neck[0], neck[1], left_shoulder[0], left_shoulder[1]),
-                (arm_left[0], arm_left[1], left_shoulder[0], left_shoulder[1]),
-                (arm_right[0], arm_right[1], right_shoulder[0], right_shoulder[1]),
-                (arm_right[0], arm_right[1], hand_right[0], hand_right[1]),
-                (arm_left[0], arm_left[1], hand_left[0], hand_left[1]),
-                (neck[0], neck[1], waist[0], waist[1]),
-                (knee_right[0], knee_right[1], waist[0], waist[1]),
-                (knee_left[0], knee_left[1], waist[0], waist[1]),
-                (knee_left[0], knee_left[1], ankle_left[0], ankle_left[1]),
-                (knee_right[0], knee_right[1], ankle_right[0], ankle_right[1]),
+                (neck, right_shoulder),
+                (neck, left_shoulder),
+                (arm_left, left_shoulder),
+                (arm_right, right_shoulder),
+                (arm_right, hand_right),
+                (arm_left, hand_left),
+                (neck, waist),
+                (knee_right, waist),
+                (knee_left, waist),
+                (knee_left, ankle_left),
+                (knee_right, ankle_right),
             ]
 
-            # Draw Skeleton
-            for conn in bone_connections:
-                draw_line(int(conn[0]), int(conn[1]), int(conn[2]), int(conn[3]), color)
+            # Collect successfully projected valid bones to determine the bounding box
+            valid_y = []
+            valid_x = []
+
+            # Draw Skeleton and collect bounding coordinates
+            for b1, b2 in bone_connections:
+                if b1[0] != -999 and b1[1] != -999 and b2[0] != -999 and b2[1] != -999:
+                    draw_line(int(b1[0]), int(b1[1]), int(b2[0]), int(b2[1]), color)
+                    valid_y.extend([b1[1], b2[1]])
+                    valid_x.extend([b1[0], b2[0]])
+
+            if head[0] != -999 and head[1] != -999:
+                valid_y.append(head[1])
+                valid_x.append(head[0])
+
+            # If no valid coordinates were drawn, skip drawing the box/HP entirely
+            if not valid_y or not valid_x:
+                return
+
+            # Dynamic Bounding Box derived strictly from rendered bones
+            min_y = min(valid_y) - 10.0  # Top buffer for head
+            max_y = max(valid_y) + 5.0  # Bottom buffer for feet
+
+            box_height = max_y - min_y
+            box_width = box_height // 2  # Keeps standard bounding box proportion
+
+            # Center box around X-center of valid points
+            center_x = (min(valid_x) + max(valid_x)) / 2
+            left_x = center_x - (box_width / 2)
+            right_x = center_x + (box_width / 2)
 
             # Draw Box
-            draw_rectangle_lines(
-                int(left_x), int(head_pos[1]), int(right_x - left_x), int(bottom_y - head_pos[1] + 7.0), color
-            )
+            draw_rectangle_lines(int(left_x), int(min_y), int(box_width), int(box_height), color)
 
-            # Draw Head Circle
-            draw_circle_lines(int(head[0]), int(head[1]), abs(head[1] - neck[1]) * 1.125, color)
+            # Draw Head Circle around true head bone if visible
+            if head[0] != -999 and head[1] != -999 and neck[1] != -999:
+                draw_circle_lines(int(head[0]), int(head[1]), abs(head[1] - neck[1]) * 1.125, color)
 
             # Draw Health Bar
             health = entity.health
@@ -89,11 +114,14 @@ class ESPRenderer:
                 if health > 30.0
                 else Color(255, 0, 0, 255)
             )
-            scaled_health_pos = head_pos[1] + ((100 - int(health)) / 100.0) * delta_z
-            draw_line(int(left_x - 5), int(scaled_health_pos), int(left_x - 5), int(leg_pos[1]), health_color)
-            draw_text(f"HP: {health}", int(left_x), int(bottom_y), 10, Color(255, 255, 0, 255))
+            scaled_health_pos = min_y + ((100 - int(health)) / 100.0) * box_height
+            draw_line(int(left_x - 5), int(scaled_health_pos), int(left_x - 5), int(max_y), health_color)
 
-            # Name
-            draw_text(entity.name, int(left_x), int(top_y), 12, Color(255, 255, 0, 255))
+            if self.font:
+                draw_text_ex(self.font, f"HP: {health}", Vector2(left_x, max_y + 2), 12, 1, Color(255, 255, 0, 255))
+                draw_text_ex(self.font, entity.name, Vector2(left_x, min_y - 12), 16, 1, Color(255, 255, 0, 255))
+            else:
+                draw_text(f"HP: {health}", int(left_x), int(max_y + 2), 10, Color(255, 255, 0, 255))
+                draw_text(entity.name, int(left_x), int(min_y - 12), 12, Color(255, 255, 0, 255))
         except Exception as e:
             print(f"Error drawing entity: {e}")
