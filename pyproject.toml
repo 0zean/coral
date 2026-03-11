@@ -13,18 +13,14 @@ dependencies = [
     "pyopengl>=3.1.10",
     "pywin32>=311",
     "raylib-py>=5.5.0",
-    "streamlit>=1.51.0",
+    "streamlit>=1.55.0",
 ]
 
 [dependency-groups]
-dev = [
-    "ruff>=0.14.2",
-]
+dev = ["ruff>=0.14.2"]
 
 [tool.ruff]
 exclude = [".venv"]
 respect-gitignore = true
 line-length = 120
-lint.ignore = [
-    "F403"
-]
+lint.ignore = ["F403"]
