@@ -45,7 +45,7 @@ class ThreadManager:
             thread = self.threads[name]
             if thread.is_alive():
                 # specific for ESP which might be in a render loop or something blocking
-                thread.join(timeout=1.0)
+                thread.join(timeout=0.2)
             del self.threads[name]
 
         if name in self.stop_events:

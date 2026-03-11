@@ -119,11 +119,5 @@ with tab2:
         if not state.thread_manager.is_running("esp"):
             state.thread_manager.start_thread("esp", run_esp_wrapper, (pm, client))
 
-if not enable_trigger and state.thread_manager.is_running("tbot"):
-    state.thread_manager.stop_thread("tbot")
-
-if not enable_rcs and state.thread_manager.is_running("rcs"):
-    state.thread_manager.stop_thread("rcs")
-
 if not enable_esp and state.thread_manager.is_running("esp"):
     state.thread_manager.stop_thread("esp")
