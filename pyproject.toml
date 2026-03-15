@@ -17,7 +17,9 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.14.2"]
+dev = [
+    "ruff>=0.15.6"
+]
 
 [tool.ruff]
 exclude = [".venv"]
