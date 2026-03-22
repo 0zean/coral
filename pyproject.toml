@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.11.11"
 dependencies = [
     "glfw>=2.10.0",
-    "imgui>=2.0.0",
     "keyboard>=0.13.5",
     "pymem>=1.14.0",
     "pynput>=1.8.1",
@@ -18,7 +17,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "ruff>=0.15.6"
+    "ruff>=0.15.7"
 ]
 
 [tool.ruff]
