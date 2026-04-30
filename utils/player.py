@@ -1,10 +1,11 @@
 import struct
+from ctypes import sizeof
 from typing import Any
 
 import pymem.exception  # type: ignore
 from pymem import Pymem  # type: ignore
 
-from .structs import Vec2, Vec3
+from .structs import C_UTL_VECTOR, Vec2, Vec3
 
 
 def pymem_exception(func):
@@ -66,7 +67,19 @@ class PlayerPawn:
 
     @pymem_exception
     def get_aim_punch_angle(self) -> Vec3:
-        return Vec3(*struct.unpack("fff", self.pm.read_bytes(self.address + self.offsets["m_aimPunchAngle"], 12)))
+        aim_punch_services = self.pm.read_longlong(self.address + self.offsets["m_pAimPunchServices"])
+        if not aim_punch_services:
+            return Vec3(0.0, 0.0, 0.0)
+
+        raw = self.pm.read_bytes(aim_punch_services + 0x88, sizeof(C_UTL_VECTOR))
+        cache = C_UTL_VECTOR.from_buffer_copy(raw)
+
+        if not (0 < cache.Count < 0xFFFF) or not cache.Data:
+            return Vec3(0.0, 0.0, 0.0)
+
+        last = cache.Count - 1
+        angle_raw = self.pm.read_bytes(cache.Data + last * sizeof(Vec3), sizeof(Vec3))
+        return Vec3.from_buffer_copy(angle_raw)
 
     @pymem_exception
     def get_shots_fired(self) -> int:

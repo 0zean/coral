@@ -41,7 +41,7 @@ offsets: dict[str, int] = {
     "m_iHealth": nv.get("C_BaseEntity", "m_iHealth"),
     "m_iShotsFired": nv.get("C_CSPlayerPawn", "m_iShotsFired"),
     "m_angEyeAngles": nv.get("C_CSPlayerPawn", "m_angEyeAngles"),
-    "m_aimPunchAngle": nv.get("C_CSPlayerPawn", "m_aimPunchAngle"),
+    "m_pAimPunchServices": nv.get("C_CSPlayerPawn", "m_pAimPunchServices"),
     "m_vOldOrigin": nv.get("C_BasePlayerPawn", "m_vOldOrigin"),
     "dwViewMatrix": nv.offset("dwViewMatrix"),
     "m_lifeState": nv.get("C_BaseEntity", "m_lifeState"),
