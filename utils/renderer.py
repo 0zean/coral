@@ -1,11 +1,13 @@
-from raylibpy import Color, Vector2, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, draw_text_ex
+from raylibpy import Color, Font, Vector2, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, draw_text_ex
 
 from utils.entity import Entity
 from utils.visuals import w2s
 
 
 class ESPRenderer:
-    def __init__(self, screen_width: int, screen_height: int, view_matrix: tuple[float, ...], font: any = None) -> None:
+    def __init__(
+        self, screen_width: int, screen_height: int, view_matrix: tuple[float, ...], font: Font | None = None
+    ) -> None:
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.view_matrix = view_matrix
