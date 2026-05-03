@@ -109,6 +109,7 @@ class Config:
             "leg_right": 20,
             "knee_right": 21,
             "ankle_right": 22,
+            "leg": 22,
         }
 
 
