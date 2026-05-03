@@ -8,7 +8,7 @@ def w2s(mtx: tuple[float, ...], posx: float, posy: float, posz: float, width: in
     World to screen function.
 
     Args:
-        mtx (tuple[float]): View mtxrix.
+        mtx (tuple[float, ...]): View matrix.
         posx (float): x position.
         posy (float): y position.
         posz (float): z position.
@@ -27,8 +27,8 @@ def w2s(mtx: tuple[float, ...], posx: float, posy: float, posz: float, width: in
         camX = width / 2
         camY = height / 2
 
-        x = camX + (camX * screenX / screenW) // 1
-        y = camY - (camY * screenY / screenW) // 1
+        x = camX + int(camX * screenX / screenW)
+        y = camY - int(camY * screenY / screenW)
 
         return [x, y]
 
@@ -41,7 +41,7 @@ def batch_bone_read(pm: Pymem, bone_matrix: int, bone_indices: dict[str, int]) -
 
     Args:
         pm (Pymem): Pymem instance.
-        bone_matrix (int): Bone mtxrix address.
+        bone_matrix (int): Bone matrix address.
         bone_indices (dict[str, int]): Dictionary of bone names and their indices.
 
     Returns:

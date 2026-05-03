@@ -8,8 +8,10 @@ class Client:
                 self.offsets = json.load(f)
             with open("output/client_dll.json") as f:
                 self.clientdll = json.load(f)
+        except FileNotFoundError as e:
+            raise RuntimeError(f"Offset file not found: {e.filename}") from e
         except Exception as e:
-            raise RuntimeError(f"Failed to load offsets or client DLL: {e}")
+            raise RuntimeError(f"Failed to load offsets or client DLL: {e}") from e
 
     def offset(self, key: str) -> int:
         try:

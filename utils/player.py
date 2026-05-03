@@ -1,86 +1,92 @@
-import struct
+import functools
+import logging
 from ctypes import sizeof
 from typing import Any
 
-import pymem.exception  # type: ignore
-from pymem import Pymem  # type: ignore
+from utils.memory import MemoryReadError, ProcessMemory
+from utils.structs import C_UTL_VECTOR, PlayerState, Vec3
 
-from .structs import C_UTL_VECTOR, Vec2, Vec3
+logger = logging.getLogger(__name__)
 
 
 def pymem_exception(func):
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except pymem.exception.MemoryReadError as e:
-            print(f"Memory read error occurred in {func.__name__}: {e}")
+        except MemoryReadError as e:
+            logger.warning("Memory read error in %s: %s", func.__name__, e)
+            return None
 
     return wrapper
 
 
 class PlayerPawn:
-    def __init__(self, pm: Pymem, address: int, client: Any, offsets: dict[str, int]):
-        self.pm = pm
-        self.client = client
-        self.address = address
-        self.offsets = offsets
-        self._cache = {}
-        self.ViewAngle = self.get_view_angle()
-        self.AimPunchAngle = self.get_aim_punch_angle()
-        self.ShotsFired = self.get_shots_fired()
-        self.origin = self.get_origin()
-        self.refresh()
+    def __init__(self, mem: ProcessMemory, address: int, client: Any, offsets: dict[str, int]) -> None:
+        self._mem = mem
+        self._address = address
+        self._client = client
+        self._offsets = offsets
 
-    def refresh(self) -> None:
-        self._cache["team"] = self.pm.read_int(self.address + self.offsets["m_iTeamNum"])
-        self._cache["health"] = self.pm.read_int(self.address + self.offsets["m_iHealth"])
-        self._cache["life_state"] = self.pm.read_int(self.address + self.offsets["m_lifeState"])
+    def snapshot(self) -> PlayerState | None:
+        off = self._offsets
+        addr = self._address
+        mem = self._mem
 
-        sensitivity_ptr = self.pm.read_longlong(self.client + self.offsets["dwSensitivity"])
-        self._cache["client_sensitivity"] = self.pm.read_float(
-            sensitivity_ptr + self.offsets["dwSensitivity_sensitivity"]
+        team = mem.read_i32(addr + off["m_iTeamNum"])
+        health = mem.read_i32(addr + off["m_iHealth"])
+        life_state = mem.read_i32(addr + off["m_lifeState"])
+        shots_fired = mem.read_i32(addr + off["m_iShotsFired"])
+
+        # View angle
+        raw_va = mem.read_bytes(addr + off["m_angEyeAngles"], 8)
+        if raw_va is None:
+            return None
+        view_angle = tuple(raw_va[i : i + 4] for i in (0, 4))
+        import struct
+
+        vax, vay = struct.unpack("ff", raw_va)
+
+        # Aim punch
+        punch = self._read_aim_punch()
+
+        # Sensitivity
+        sens_ptr = mem.read_ptr(self._client + off["dwSensitivity"])
+        sensitivity = mem.read_f32(sens_ptr + off["dwSensitivity_sensitivity"]) if sens_ptr else 1.0
+
+        return PlayerState(
+            team=team,
+            health=health,
+            life_state=life_state,
+            shots_fired=shots_fired,
+            view_angle=(vax, vay),
+            aim_punch=punch,
+            origin=self._read_origin(),
+            sensitivity=sensitivity,
         )
 
-    @property
-    def team(self) -> int:
-        return self._cache["team"]
+    def _read_origin(self) -> tuple[float, float, float]:
+        import struct
 
-    @property
-    def health(self) -> int:
-        return self._cache["health"]
+        raw = self._mem.read_bytes(self._address + self._offsets["m_vOldOrigin"], 12)
+        return struct.unpack("fff", raw) if raw else (0.0, 0.0, 0.0)
 
-    @property
-    def life_state(self) -> int:
-        return self._cache["life_state"]
+    def _read_aim_punch(self) -> tuple[float, float, float]:
+        mem = self._mem
+        off = self._offsets
 
-    @property
-    def client_sensitivity(self) -> float:
-        return self._cache["client_sensitivity"]
+        services_ptr = mem.read_ptr(self._address + off["m_pAimPunchServices"])
+        if not services_ptr:
+            return (0.0, 0.0, 0.0)
 
-    @pymem_exception
-    def get_origin(self) -> Vec3:
-        return Vec3(*struct.unpack("fff", self.pm.read_bytes(self.address + self.offsets["m_vOldOrigin"], 12)))
+        utlvec = mem.read_struct(services_ptr + 0x88, C_UTL_VECTOR)
+        if utlvec is None or not (0 < utlvec.Count < 0xFFFF) or not utlvec.Data:
+            return (0.0, 0.0, 0.0)
 
-    @pymem_exception
-    def get_view_angle(self) -> Vec2:
-        return Vec2(*struct.unpack("ff", self.pm.read_bytes(self.address + self.offsets["m_angEyeAngles"], 8)))
+        last = utlvec.Count - 1
+        raw = mem.read_bytes(utlvec.Data + last * sizeof(Vec3), sizeof(Vec3))
+        if raw is None:
+            return (0.0, 0.0, 0.0)
 
-    @pymem_exception
-    def get_aim_punch_angle(self) -> Vec3:
-        aim_punch_services = self.pm.read_longlong(self.address + self.offsets["m_pAimPunchServices"])
-        if not aim_punch_services:
-            return Vec3(0.0, 0.0, 0.0)
-
-        raw = self.pm.read_bytes(aim_punch_services + 0x88, sizeof(C_UTL_VECTOR))
-        cache = C_UTL_VECTOR.from_buffer_copy(raw)
-
-        if not (0 < cache.Count < 0xFFFF) or not cache.Data:
-            return Vec3(0.0, 0.0, 0.0)
-
-        last = cache.Count - 1
-        angle_raw = self.pm.read_bytes(cache.Data + last * sizeof(Vec3), sizeof(Vec3))
-        return Vec3.from_buffer_copy(angle_raw)
-
-    @pymem_exception
-    def get_shots_fired(self) -> int:
-        return self.pm.read_int(self.address + self.offsets["m_iShotsFired"])
+        v = Vec3.from_buffer_copy(raw)
+        return (v.x, v.y, v.z)

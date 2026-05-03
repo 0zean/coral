@@ -10,114 +10,125 @@ from functions.esp import ESPController
 from functions.rcs import rcs
 from functions.trig import trig
 from utils.config import config
+from utils.memory import ProcessMemory
+from utils.structs import ScreenSize
 from utils.thread_manager import ThreadManager
 
-st.set_page_config(page_title="CORAL.py", page_icon="🐠", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title="CORAL.py",
+    page_icon="🐠",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
 state = st.session_state
 
-# Initialize ThreadManager in session state
-if "thread_manager" not in state:
-    state.thread_manager = ThreadManager()
-
-exit_app = st.sidebar.button("Shut Down")
-
-if exit_app:
-    state.thread_manager.stop_all()
+if st.sidebar.button("Shut Down"):
+    if "thread_mgr" in state:
+        state.thread_mgr.stop_all()
     time.sleep(1)
     os._exit(0)
 
-try:
-    pm = pymem.Pymem("cs2.exe")
-    # Only show toast once
-    if "loaded" not in state:
-        state.msg = st.toast("cs2.exe found! loading...", icon="🎉")
-        module = pymem.process.module_from_name(pm.process_handle, "client.dll")
-        if isinstance(module, MODULEINFO):
-            client = module.lpBaseOfDll
-            state.client = client
-            state.pm = pm
-        time.sleep(1)
-        state.msg.toast("coral.py loaded", icon="💯")
-        state.loaded = True
-    else:
-        # Restore from state if they exist
-        if "pm" in state:
-            pm = state.pm
-        if "client" in state:
-            client = state.client
+# process attachment
+if "loaded" not in state:
+    try:
+        mem = ProcessMemory("cs2.exe")
+    except pymem.pymem.exception.ProcessNotFound:
+        st.error("cs2.exe not found!", icon="🚨")
+        st.stop()
 
-except pymem.pymem.exception.ProcessNotFound:
-    st.error("cs2.exe not found!", icon="🚨")
-    # Stop execution of the rest of the app if not found, to avoid errors
-    st.stop()
+    module = pymem.process.module_from_name(mem.pymem.process_handle, "client.dll")
+    if not isinstance(module, MODULEINFO):
+        st.error("client.dll not found in cs2.exe!", icon="🚨")
+        st.stop()
+
+    state.mem = mem
+    state.client = module.lpBaseOfDll
+    state.thread_mgr = ThreadManager()
+
+    msg = st.toast("cs2.exe found! loading...", icon="🎉")
+    time.sleep(1)
+    msg.toast("coral.py loaded", icon="💯")
+    state.loaded = True
+
+
+mem: ProcessMemory = state.mem
+client: int = state.client
+thread_mgr: ThreadManager = state.thread_mgr
 
 
 # App design + layout
 with open("assets/style.css") as f:
-    css = f.read()
+    st.html(f"<style>{f.read()}</style>")
 
-# Custom title using CSS file
-st.html(f"<style>{css}</style>")
 st.html(
-    '<h1 class="title-font">C<span style="color:#fdc4b6;">o</span><span style="color:#e59572;">r</span><span style="color:#2694ab;">a</span><span style="color:#4dbedf;">l</span>🐠</h1>'
+    '<h1 class="title-font">'
+    'C<span style="color:#fdc4b6;">o</span>'
+    '<span style="color:#e59572;">r</span>'
+    '<span style="color:#2694ab;">a</span>'
+    '<span style="color:#4dbedf;">l</span>🐠'
+    "</h1>"
 )
+st.balloons()
 
-ballons = st.balloons()
+tab_aim, tab_esp, tab_misc = st.tabs(["Aim", "ESP", "Misc"])
 
-tab1, tab2, tab3 = st.tabs(["Aim", "ESP", "Misc"])
+# Aim Tab
+with tab_aim:
+    col_toggle, col_control = st.columns(2)
 
-with tab1:
-    col1, col2 = st.columns(2)
-
-    with col1:
+    with col_toggle:
+        # Trigger bot
         enable_trigger = st.toggle("Enable trigger bot")
-        state.thread_manager.config.enable_trigger = enable_trigger
+        thread_mgr.config.enable_trigger = enable_trigger
 
-        if not enable_trigger:
-            state.disable_keys = True
-        else:
-            state.disable_keys = False
-            # Start trigger thread if not running
-            if not state.thread_manager.is_running("tbot"):
-                state.thread_manager.start_thread("tbot", trig, (pm, client))
+        if enable_trigger and not thread_mgr.is_running("tbot"):
+            thread_mgr.start_thread("tbot", trig, (mem, client))
 
+        # RCS
         enable_rcs = st.toggle("Enable RCS")
-        state.thread_manager.config.enable_rcs = enable_rcs
+        thread_mgr.config.enable_rcs = enable_rcs
 
-        if not enable_rcs:
-            state.disable_slider = True
-        else:
-            state.disable_slider = False
-            # Start RCS thread if not running
-            if not state.thread_manager.is_running("rcs"):
-                state.thread_manager.start_thread("rcs", rcs, (pm, client))
+        if enable_rcs and not thread_mgr.is_running("rcs"):
+            thread_mgr.start_thread("rcs", rcs, (mem, client))
 
-    with col2:
+    with col_control:
         trigkey = st.selectbox(
-            "Trigger bot key (*x* and *x2* are mouse side-butttons)",
+            "Trigger key  (*x* / *x2* = mouse side-buttons)",
             config.keys,
             placeholder="Choose a key",
-            disabled=state.disable_keys,
+            disabled=not enable_trigger,
         )
-        # Update config directly
-        state.thread_manager.config.trigger_key = trigkey
+        thread_mgr.config.trigger_key = trigkey
 
-        amt = st.slider("RCS Amount", 0.0, 2.0, 2.0, 0.1, disabled=state.disable_slider)
-        # Update config directly
-        state.thread_manager.config.rcs_amount = amt
+        amt = st.slider(
+            "RCS amount",
+            min_value=0.0,
+            max_value=2.0,
+            value=2.0,
+            step=0.1,
+            disabled=not enable_rcs,
+        )
+        thread_mgr.config.rcs_amount = amt
 
-with tab2:
+# ESP Tab
+with tab_esp:
     enable_esp = st.toggle("Enable ESP")
-    state.thread_manager.config.enable_esp = enable_esp
+    thread_mgr.config.enable_esp = enable_esp
 
-    if enable_esp:
+    if enable_esp and not thread_mgr.is_running("esp"):
+        screen = ScreenSize(width=config.SCREEN_WIDTH, height=config.SCREEN_HEIGHT)
 
-        def run_esp_wrapper(stop_event, config, pm, client):
-            esp_controller = ESPController(pm, client)
-            esp_controller.run_esp(stop_event, config)
+        def _esp_thread(
+            stop_event,
+            cfg,
+            _mem: ProcessMemory = mem,
+            _client: int = client,
+            _screen: ScreenSize = screen,
+        ) -> None:
+            controller = ESPController(_mem, _client, _screen)
+            controller.run(stop_event, cfg)
 
-        if not state.thread_manager.is_running("esp"):
-            state.thread_manager.start_thread("esp", run_esp_wrapper, (pm, client))
+        thread_mgr.start_thread("esp", _esp_thread, ())
 
-if not enable_esp and state.thread_manager.is_running("esp"):
-    state.thread_manager.stop_thread("esp")
+    if not enable_esp and thread_mgr.is_running("esp"):
+        thread_mgr.stop_thread("esp")

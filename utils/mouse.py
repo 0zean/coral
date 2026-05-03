@@ -1,95 +1,85 @@
 import ctypes
 import threading
 from time import time
-from typing import Literal
 
 import win32api
 
 from utils.config import config
 from utils.structs import INPUT, MOUSEINPUT, Vec2
 
-# ctypes function prototypes
+# ctypes function prototype
 SendInput = ctypes.windll.user32.SendInput
 SendInput.argtypes = (ctypes.c_uint, ctypes.POINTER(INPUT), ctypes.c_int)
 SendInput.restype = ctypes.c_uint
 
-# Global state
-last_moved = threading.Lock()
-last_moved_time = time()
+# Global rate-limit state
+_last_moved_lock = threading.Lock()
+_last_moved_time: float = time()
 
 
-def create_mouse_input(flags: Literal[1], dx: int, dy: int, data: int, extra_info: int) -> INPUT:
-    """
-    Creates a mouse input event.
-
-    Args:
-        flags (Literal[1]): The mouse event flags.
-        dx (int): Amount to move in the x direction.
-        dy (int): Amount to move in the y direction.
-        data (int): Additional data for the event.
-        extra_info (int): Extra information for the event.
-
-    Returns:
-        INPUT: The constructed INPUT structure.
-    """
+# Internal helpers
+def _make_relative_input(dx: int, dy: int) -> INPUT:
+    """Build a relative-move INPUT struct (MOUSEEVENTF_MOVE = 0x0001)."""
     mi = MOUSEINPUT(
-        dx=dx, dy=dy, mouseData=data, dwFlags=flags, time=0, dwExtraInfo=ctypes.pointer(ctypes.c_ulong(extra_info))
+        dx=dx,
+        dy=dy,
+        mouseData=0,
+        dwFlags=config.MOUSEEVENTF_MOVE,
+        time=0,
+        dwExtraInfo=ctypes.pointer(ctypes.c_ulong(0)),
     )
-    input = INPUT(type=0, u=INPUT.INPUT_UNION(mi=mi))
-    return input
+    return INPUT(type=0, u=INPUT.INPUT_UNION(mi=mi))
 
 
-def send_input(input: INPUT) -> None:
-    """
-    Sends a single input event to the system.
-
-    Args:
-        input (INPUT): The INPUT structure to send.
-    """
-    SendInput(1, ctypes.byref(input), ctypes.sizeof(input))
+def _send(inp: INPUT) -> None:
+    SendInput(1, ctypes.byref(inp), ctypes.sizeof(inp))
 
 
-def move_mouse(x: int, y: int, set_last_moved: bool) -> None:
-    """
-    Moves the mouse by specified x and y offsets.
-
-    Args:
-        x (int): The x coordinate to move the mouse to.
-        y (int): The y coordinate to move the mouse to.
-        set_last_moved (bool): Whether to update the last moved time.
-    """
-    send_input(create_mouse_input(config.MOUSEEVENTF_MOVE, x, y, 0, 0))
-    if set_last_moved:
-        global last_moved_time
-        with last_moved:
-            last_moved_time = time()
-
-
+# Public API
 def get_mouse_pos() -> Vec2:
     """
-    Gets the current mouse position.
+    Return the current absolute cursor position.
 
     Returns:
-        Vec2: Current mouse position as Vec2 (x, y).
+        Vec2: Current [x, y] mouse position.
     """
     pos = win32api.GetCursorPos()
-    if pos:
-        return Vec2(pos[0], pos[1])
-    return Vec2(0, 0)
+    return Vec2(pos[0], pos[1]) if pos else Vec2(0, 0)
+
+
+def move_mouse(dx: int, dy: int, *, record_time: bool = False) -> None:
+    """
+    Send a relative mouse movement via SendInput.
+
+    Args:
+        dx (int): Horizontal delta in pixels.
+        dy (int): Vertical delta in pixels.
+        record_time (bool, optional): If True, update the global last-moved timestamp. Defaults to False.
+    """
+    _send(_make_relative_input(dx, dy))
+    if record_time:
+        global _last_moved_time
+        with _last_moved_lock:
+            _last_moved_time = time()
 
 
 def move_mouse_to_location(pos: Vec2) -> None:
     """
-    Moves the mouse to a specified location on the screen.
+    Move the cursor to an absolute screen position via a relative SendInput call.
+
+    Computes the delta from screen centre and sends it as a move event through SendInput.
 
     Args:
-        pos (Vec2): The target position to move the mouse to.
+        pos (Vec2): Target absolute screen position
     """
-    if pos.x < 0.0 and pos.y < 0.0:
+    if pos.x < 0.0 or pos.y < 0.0:
         return
 
-    center_of_screen = Vec2(config.SCREEN_WIDTH / 2.0, config.SCREEN_HEIGHT / 2.0)
-    dx = int(pos.x - center_of_screen.x)
-    dy = int(pos.y - center_of_screen.y)
+    center = Vec2(config.SCREEN_WIDTH / 2.0, config.SCREEN_HEIGHT / 2.0)
+    dx = int(pos.x - center.x)
+    dy = int(pos.y - center.y)
 
-    ctypes.windll.user32.mouse_event(0x0001, dx, dy, 0, 0)
+    if dx == 0 and dy == 0:
+        return
+
+    _send(_make_relative_input(dx, dy))

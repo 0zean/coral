@@ -1,9 +1,11 @@
 import win32api
 
+MOUSEEVENTF_MOVE: int = 0x0001
+
 
 class Config:
     def __init__(self):
-        self.keys = [
+        self.keys = (
             "shift",
             "x",
             "x2",
@@ -27,6 +29,7 @@ class Config:
             "f10",
             "f11",
             "f12",
+            "0",
             "1",
             "2",
             "3",
@@ -36,37 +39,35 @@ class Config:
             "7",
             "8",
             "9",
-            "0",
             "up",
             "left",
             "down",
             "right",
-            "q",
-            "w",
-            "e",
-            "r",
-            "t",
-            "y",
-            "u",
-            "i",
-            "o",
-            "p",
             "a",
-            "s",
+            "b",
+            "c",
             "d",
+            "e",
             "f",
             "g",
             "h",
+            "i",
             "j",
             "k",
             "l",
-            "z",
-            "x",
-            "c",
-            "v",
-            "b",
-            "n",
             "m",
+            "n",
+            "o",
+            "p",
+            "q",
+            "r",
+            "s",
+            "t",
+            "u",
+            "v",
+            "w",
+            "y",
+            "z",
             "-",
             "=",
             "backspace",
@@ -81,17 +82,13 @@ class Config:
             ".",
             "/",
             "num lock",
-            "/",
             "*",
-            "-",
             "+",
-            "enter",
             "scroll lock",
             "pause",
             "`",
-            ".",
-        ]
-        self.MOUSEEVENTF_MOVE = 0x0001
+        )
+        self.MOUSEEVENTF_MOVE = MOUSEEVENTF_MOVE
         self.SCREEN_WIDTH = win32api.GetSystemMetrics(0)
         self.SCREEN_HEIGHT = win32api.GetSystemMetrics(1)
         self.BONE_INDICES = {

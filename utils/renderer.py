@@ -1,129 +1,266 @@
-from raylibpy import Color, Font, Vector2, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, draw_text_ex
+import array
 
-from utils.entity import Entity
-from utils.visuals import w2s
+import glfw
+import moderngl
+
+from utils.structs import EntitySnapshot
+
+# GLSL shaders
+_VERT = """
+#version 330 core
+in vec2 in_pos;
+in vec4 in_color;
+out vec4 v_color;
+uniform vec2 u_resolution;
+
+void main() {
+    // Map pixel coords → NDC
+    vec2 ndc = (in_pos / u_resolution) * 2.0 - 1.0;
+    ndc.y = -ndc.y;
+    gl_Position = vec4(ndc, 0.0, 1.0);
+    v_color = in_color;
+}
+"""
+
+_FRAG = """
+#version 330 core
+in vec4 v_color;
+out vec4 out_color;
+void main() { out_color = v_color; }
+"""
+
+# Color helper
+RGBA = tuple[float, float, float, float]
 
 
-class ESPRenderer:
-    def __init__(
-        self, screen_width: int, screen_height: int, view_matrix: tuple[float, ...], font: Font | None = None
+def _hp_color(hp: int) -> RGBA:
+    if hp >= 70:
+        return (0.0, 0.78, 0.0, 1.0)
+    if hp > 30:
+        return (1.0, 0.55, 0.0, 1.0)
+    return (1.0, 0.0, 0.0, 1.0)
+
+
+# Geometry helpers (write directly into a pre-allocated float buffer)
+def _push_line(
+    buf: array.array,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
+    r: float,
+    g: float,
+    b: float,
+    a: float,
+) -> None:
+    buf.extend((x0, y0, r, g, b, a, x1, y1, r, g, b, a))
+
+
+def _push_rect(
+    buf: array.array,
+    lx: float,
+    ty: float,
+    rx: float,
+    by: float,
+    r: float,
+    g: float,
+    b: float,
+    a: float,
+) -> None:
+    """Four edges of a rectangle as 8 line-segment endpoints."""
+    _push_line(buf, lx, ty, rx, ty, r, g, b, a)  # top
+    _push_line(buf, rx, ty, rx, by, r, g, b, a)  # right
+    _push_line(buf, rx, by, lx, by, r, g, b, a)  # bottom
+    _push_line(buf, lx, by, lx, ty, r, g, b, a)  # left
+
+
+def w2s(mtx: tuple[float, ...], px: float, py: float, pz: float, width: int, height: int) -> tuple[float, float] | None:
+    w = mtx[12] * px + mtx[13] * py + mtx[14] * pz + mtx[15]
+    if w <= 0.001:
+        return None
+    sx = mtx[0] * px + mtx[1] * py + mtx[2] * pz + mtx[3]
+    sy = mtx[4] * px + mtx[5] * py + mtx[6] * pz + mtx[7]
+    cx, cy = width / 2.0, height / 2.0
+    return cx + cx * sx / w, cy - cy * sy / w
+
+
+_BONE_CONNECTIONS: tuple[tuple[str, str], ...] = (
+    ("neck", "shoulder_right"),
+    ("neck", "shoulder_left"),
+    ("shoulder_left", "arm_left"),
+    ("shoulder_right", "arm_right"),
+    ("arm_right", "hand_right"),
+    ("arm_left", "hand_left"),
+    ("neck", "waist"),
+    ("waist", "knee_right"),
+    ("waist", "knee_left"),
+    ("knee_left", "ankle_left"),
+    ("knee_right", "ankle_right"),
+)
+
+
+class ESPOverlay:
+    """Transparent overlay rendered with ModernGL."""
+
+    _INITIAL_VERTEX_CAPACITY = 8_192  # floats; grows automatically
+
+    def __init__(self, width: int, height: int) -> None:
+        self._w = width
+        self._h = height
+        self._buf: array.array = array.array("f")
+
+        # GLFW
+        if not glfw.init():
+            raise RuntimeError("GLFW init failed")
+
+        glfw.window_hint(glfw.TRANSPARENT_FRAMEBUFFER, glfw.TRUE)
+        glfw.window_hint(glfw.DECORATED, glfw.FALSE)
+        glfw.window_hint(glfw.FLOATING, glfw.TRUE)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.SAMPLES, 4)  # 4x MSAA
+
+        self._win = glfw.create_window(width, height, "ESP Overlay", None, None)
+        if not self._win:
+            glfw.terminate()
+            raise RuntimeError("GLFW window creation failed")
+
+        glfw.make_context_current(self._win)
+        glfw.swap_interval(0)
+
+        # make window click-through and layered
+        self._setup_win32_layered()
+
+        # ModernGL
+        self._ctx = moderngl.create_context()
+        self._ctx.enable(moderngl.BLEND)
+        self._ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
+
+        self._prog = self._ctx.program(vertex_shader=_VERT, fragment_shader=_FRAG)
+        self._prog["u_resolution"].value = (float(width), float(height))  # type: ignore
+
+        # dynamic VBO
+        self._vbo = self._ctx.buffer(reserve=self._INITIAL_VERTEX_CAPACITY * 4)
+        self._vao = self._ctx.vertex_array(
+            self._prog,
+            [(self._vbo, "2f 4f", "in_pos", "in_color")],
+        )
+
+    # Win32 helpers
+    def _setup_win32_layered(self) -> None:
+        import ctypes
+
+        hwnd = glfw.get_win32_window(self._win)
+        GWL_EXSTYLE = -20
+        WS_EX_LAYERED = 0x00080000
+        WS_EX_TRANSPARENT = 0x00000020
+        user32 = ctypes.windll.user32
+        style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+        user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED | WS_EX_TRANSPARENT)
+        # LWA_COLORKEY: treat pure black as transparent
+        user32.SetLayeredWindowAttributes(hwnd, 0x000000, 0, 0x1)
+
+    # Frame API
+    @property
+    def alive(self) -> bool:
+        return not glfw.window_should_close(self._win)
+
+    def begin_frame(
+        self,
+        view_matrix: tuple[float, ...],
+        entities: list[EntitySnapshot],
     ) -> None:
-        self.screen_width = screen_width
-        self.screen_height = screen_height
-        self.view_matrix = view_matrix
-        self.font = font
+        glfw.poll_events()
+        self._buf = array.array("f")
 
-    def draw_entity(self, entity: Entity, color: Color) -> None:
-        bones = entity.bones
+        for ent in entities:
+            self._draw_entity(view_matrix, ent)
 
-        def proj(bone):
-            return w2s(self.view_matrix, *bones[bone], self.screen_width, self.screen_height)
+    def end_frame(self) -> None:
+        self._ctx.clear(0.0, 0.0, 0.0, 0.0)  # transparent clear
 
-        try:
-            head = proj("head")
-            knee_left, ankle_left = proj("knee_left"), proj("ankle_left")
-            knee_right, ankle_right = proj("knee_right"), proj("ankle_right")
-            neck, right_shoulder, left_shoulder = proj("neck"), proj("shoulder_right"), proj("shoulder_left")
-            arm_right, hand_right = proj("arm_right"), proj("hand_right")
-            arm_left, hand_left = proj("arm_left"), proj("hand_left")
-            waist = proj("waist")
+        if self._buf:
+            data = self._buf.tobytes()
+            # Grow VBO if needed
+            if len(data) > self._vbo.size:
+                self._vbo.orphan(len(data) * 2)
 
-            head_bone = bones["head"]
-            leg_bone = bones["leg"]
+            self._vbo.write(data)
+            vertex_count = len(self._buf) // 6  # 6 floats per vertex
+            self._vao.render(moderngl.LINES, vertices=vertex_count)
 
-            head_x, head_y, head_z = bones["head"]
-            head_z += 8.0
+        glfw.swap_buffers(self._win)
 
-            head_pos = w2s(
-                self.view_matrix,
-                float(head_x),
-                float(head_y),
-                float(head_z),
-                self.screen_width,
-                self.screen_height,
-            )
-            leg_pos = w2s(
-                self.view_matrix,
-                float(head_bone[0]),
-                float(head_bone[1]),
-                float(leg_bone[2]),
-                self.screen_width,
-                self.screen_height,
-            )
+    # entity geometry
+    def _draw_entity(
+        self,
+        mtx: tuple[float, ...],
+        ent: EntitySnapshot,
+    ) -> None:
+        bones = ent.bones
+        w, h = self._w, self._h
 
-            # Early exit if both head and legs are off-screen, skip drawing this entity
-            if head_pos == [-999, -999] and leg_pos == [-999, -999]:
-                return
+        def proj(name: str) -> tuple[float, float] | None:
+            b = bones.get(name)
+            return w2s(mtx, *b, w, h) if b else None
 
-            bone_connections = [
-                (neck, right_shoulder),
-                (neck, left_shoulder),
-                (arm_left, left_shoulder),
-                (arm_right, right_shoulder),
-                (arm_right, hand_right),
-                (arm_left, hand_left),
-                (neck, waist),
-                (knee_right, waist),
-                (knee_left, waist),
-                (knee_left, ankle_left),
-                (knee_right, ankle_right),
+        # Skeleton
+        er, eg, eb = 0.0, 0.71, 1.0  # entity colour: #00B4FF
+        valid_xs: list[float] = []
+        valid_ys: list[float] = []
+
+        for a_name, b_name in _BONE_CONNECTIONS:
+            a, b = proj(a_name), proj(b_name)
+            if a and b:
+                _push_line(self._buf, *a, *b, er, eg, eb, 1.0)
+                valid_xs.extend((a[0], b[0]))
+                valid_ys.extend((a[1], b[1]))
+
+        head = proj("head")
+        if head:
+            valid_xs.append(head[0])
+            valid_ys.append(head[1])
+
+        if not valid_xs:
+            return
+
+        # Bounding box
+        min_y = min(valid_ys) - 10.0
+        max_y = max(valid_ys) + 5.0
+        box_h = max_y - min_y
+        box_w = box_h / 2.0
+        cx = (min(valid_xs) + max(valid_xs)) / 2.0
+        lx = cx - box_w / 2.0
+        rx = cx + box_w / 2.0
+        _push_rect(self._buf, lx, min_y, rx, max_y, er, eg, eb, 1.0)
+
+        # Head circle
+        neck = proj("neck")
+        if head and neck:
+            import math
+
+            radius = abs(head[1] - neck[1]) * 1.125
+            N = 12
+            pts = [
+                (head[0] + radius * math.cos(2 * math.pi * i / N), head[1] + radius * math.sin(2 * math.pi * i / N))
+                for i in range(N)
             ]
+            for i in range(N):
+                p0, p1 = pts[i], pts[(i + 1) % N]
+                _push_line(self._buf, *p0, *p1, er, eg, eb, 1.0)
 
-            # Collect successfully projected valid bones to determine the bounding box
-            valid_y = []
-            valid_x = []
+        # Health bar
+        hp = max(0, min(100, ent.health))
+        hr, hg, hb, ha = _hp_color(hp)
+        bar_top = min_y + (1.0 - hp / 100.0) * box_h
+        _push_line(self._buf, lx - 5, bar_top, lx - 5, max_y, hr, hg, hb, ha)
 
-            # Draw Skeleton and collect bounding coordinates
-            for b1, b2 in bone_connections:
-                if b1[0] != -999 and b1[1] != -999 and b2[0] != -999 and b2[1] != -999:
-                    draw_line(int(b1[0]), int(b1[1]), int(b2[0]), int(b2[1]), color)
-                    valid_y.extend([b1[1], b2[1]])
-                    valid_x.extend([b1[0], b2[0]])
-
-            if head[0] != -999 and head[1] != -999:
-                valid_y.append(head[1])
-                valid_x.append(head[0])
-
-            # If no valid coordinates were drawn, skip drawing the box/HP entirely
-            if not valid_y or not valid_x:
-                return
-
-            # Dynamic Bounding Box derived strictly from rendered bones
-            min_y = min(valid_y) - 10.0  # Top buffer for head
-            max_y = max(valid_y) + 5.0  # Bottom buffer for feet
-
-            box_height = max_y - min_y
-            box_width = box_height // 2  # Keeps standard bounding box proportion
-
-            # Center box around X-center of valid points
-            center_x = (min(valid_x) + max(valid_x)) / 2
-            left_x = center_x - (box_width / 2)
-            right_x = center_x + (box_width / 2)
-
-            # Draw Box
-            draw_rectangle_lines(int(left_x), int(min_y), int(box_width), int(box_height), color)
-
-            # Draw Head Circle around true head bone if visible
-            if head[0] != -999 and head[1] != -999 and neck[1] != -999:
-                draw_circle_lines(int(head[0]), int(head[1]), abs(head[1] - neck[1]) * 1.125, color)
-
-            # Draw Health Bar
-            health = entity.health
-            health_color = (
-                Color(0, 200, 0, 255)
-                if health >= 70.0
-                else Color(255, 140, 0, 255)
-                if health > 30.0
-                else Color(255, 0, 0, 255)
-            )
-            scaled_health_pos = min_y + ((100 - int(health)) / 100.0) * box_height
-            draw_line(int(left_x - 5), int(scaled_health_pos), int(left_x - 5), int(max_y), health_color)
-
-            if self.font:
-                draw_text_ex(self.font, f"HP: {health}", Vector2(left_x, max_y + 2), 12, 1, Color(255, 255, 0, 255))
-                draw_text_ex(self.font, entity.name, Vector2(left_x, min_y - 12), 16, 1, Color(255, 255, 0, 255))
-            else:
-                draw_text(f"HP: {health}", int(left_x), int(max_y + 2), 10, Color(255, 255, 0, 255))
-                draw_text(entity.name, int(left_x), int(min_y - 12), 12, Color(255, 255, 0, 255))
-        except Exception as e:
-            print(f"Error drawing entity: {e}")
+    # Cleanup
+    def shutdown(self) -> None:
+        self._vao.release()
+        self._vbo.release()
+        self._prog.release()
+        self._ctx.release()
+        glfw.destroy_window(self._win)
+        glfw.terminate()

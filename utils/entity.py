@@ -1,75 +1,103 @@
-from typing import Any
+import struct
 
-from pymem import Pymem
-
-from utils.visuals import batch_bone_read
-
-
-class Entity:
-    def __init__(
-        self, address: int, team: int, health: int, name: str, bones: dict[str, tuple[float, float, float]]
-    ) -> None:
-        self.address = address
-        self.team = team
-        self.health = health
-        self.name = name
-        self.bones = bones
+from utils.memory import ProcessMemory
+from utils.structs import EntitySnapshot
 
 
 class EntityManager:
-    def __init__(self, pm: Pymem, client: Any, offsets: dict[str, int], bone_indicies: dict[str, int]) -> None:
-        self.pm = pm
-        self.client = client
-        self.offsets = offsets
-        self.bone_indicies = bone_indicies
+    """Reads all visible entities at once"""
 
-    def get_local_player(self) -> tuple[int, int]:
-        pawn_addr = self.pm.read_longlong(self.client + self.offsets["dwLocalPlayerPawn"])
-        team = self.pm.read_int(pawn_addr + self.offsets["m_iTeamNum"])
-        return pawn_addr, team
+    __slots__ = ("_mem", "_client", "_offsets", "_bone_indices")
 
-    def _read_bones(self, bone_matrix_addr: int) -> dict[str, tuple[float, float, float]]:
-        return batch_bone_read(self.pm, bone_matrix_addr, self.bone_indicies)
+    def __init__(self, mem: ProcessMemory, client: int, offsets: dict[str, int], bone_indices: dict[str, int]) -> None:
+        self._mem = mem
+        self._client = client
+        self._offsets = offsets
+        self._bone_indices = bone_indices
 
-    def get_entities(self) -> list[Entity]:
-        entities = []
+    def _local_team(self) -> tuple[int, int]:
+        pawn = self._mem.read_ptr(self._client + self._offsets["dwLocalPlayerPawn"])
+        team = self._mem.read_i32(pawn + self._offsets["m_iTeamNum"])
+        return pawn, team
 
-        entity_list = self.pm.read_longlong(self.client + self.offsets["dwEntityList"])
-        local_addr, local_team = self.get_local_player()
+    def _batch_bones(self, bone_matrix: int) -> dict[str, tuple[float, float, float]]:
+        indices = self._bone_indices
+        if not indices:
+            return {}
+
+        min_idx = min(indices.values())
+        max_idx = max(indices.values())
+        base_offset = min_idx * 0x20
+        total_bytes = (max_idx - min_idx + 1) * 0x20
+
+        region = self._mem.read_region(bone_matrix + base_offset, total_bytes)
+        if region is None:
+            return {}
+
+        bones: dict[str, tuple[float, float, float]] = {}
+        for name, idx in indices.items():
+            off = (idx - min_idx) * 0x20
+            x, y, z = struct.unpack_from("fff", region, off)
+            bones[name] = (x, y, z)
+        return bones
+
+    def get_entities(self) -> list[EntitySnapshot]:
+        mem = self._mem
+        off = self._offsets
+        client = self._client
+        snapshots: list[EntitySnapshot] = []
+
+        ent_list = mem.read_ptr(client + off["dwEntityList"])
+        if not ent_list:
+            return snapshots
+
+        local_addr, local_team = self._local_team()
 
         for i in range(64):
-            list_entry = self.pm.read_longlong(entity_list + ((8 * (i & 0x7FFF) >> 9) + 16))
+            list_entry = mem.read_ptr(ent_list + ((8 * (i & 0x7FFF) >> 9) + 16))
             if not list_entry:
                 continue
 
-            entity_controller = self.pm.read_longlong(list_entry + (112) * (i & 0x1FF))
-            if not entity_controller:
+            controller = mem.read_ptr(list_entry + (112) * (i & 0x1FF))
+            if not controller:
                 continue
 
-            entity_controller_pawn = self.pm.read_longlong(entity_controller + self.offsets["m_hPlayerPawn"])
-            if not entity_controller_pawn:
+            pawn_handle = mem.read_i32(controller + off["m_hPlayerPawn"])
+            if not pawn_handle:
                 continue
 
-            list_entry2 = self.pm.read_longlong(entity_list + (0x8 * ((entity_controller_pawn & 0x7FFF) >> 9) + 16))
-            if not list_entry2:
+            list2 = mem.read_ptr(ent_list + (0x8 * ((pawn_handle & 0x7FFF) >> 9) + 16))
+            if not list2:
                 continue
 
-            entity_pawn_addr = self.pm.read_longlong(list_entry2 + 0x70 * (entity_controller_pawn & 0x1FF))
-            if not entity_pawn_addr or entity_pawn_addr == local_addr:
+            pawn = mem.read_ptr(list2 + 0x70 * (pawn_handle & 0x1FF))
+            if not pawn or pawn == local_addr:
                 continue
 
-            if self.pm.read_int(entity_pawn_addr + self.offsets["m_lifeState"]) != 256:
+            if mem.read_i32(pawn + off["m_lifeState"]) != 256:
                 continue
 
-            entity_team = self.pm.read_int(entity_pawn_addr + self.offsets["m_iTeamNum"])
-            if entity_team == local_team:
+            if mem.read_i32(pawn + off["m_iTeamNum"]) == local_team:
                 continue
 
-            raw_name = self.pm.read_bytes(entity_controller + self.offsets["m_iszPlayerName"], 64)
-            name = raw_name.split(b"\x00")[0].decode("utf-8", "ignore")
-            health = self.pm.read_int(entity_pawn_addr + self.offsets["m_iHealth"])
-            game_scene = self.pm.read_longlong(entity_pawn_addr + self.offsets["m_pGameSceneNode"])
-            bone_matrix = self.pm.read_longlong(game_scene + self.offsets["m_modelState"] + 0x80)
-            bones = self._read_bones(int(bone_matrix))
-            entities.append(Entity(entity_pawn_addr, entity_team, health, name, bones))
-        return entities
+            raw_name = mem.read_bytes(controller + off["m_iszPlayerName"], 64)
+            name = raw_name.split(b"\x00")[0].decode("utf-8", "ignore") if raw_name else "?"
+
+            health = mem.read_i32(pawn + off["m_iHealth"])
+            team = mem.read_i32(pawn + off["m_iTeamNum"])
+
+            game_scene = mem.read_ptr(pawn + off["m_pGameSceneNode"])
+            bone_matrix = mem.read_ptr(game_scene + off["m_modelState"] + 0x80) if game_scene else 0
+            bones = self._batch_bones(bone_matrix) if bone_matrix else {}
+
+            snapshots.append(
+                EntitySnapshot(
+                    address=pawn,
+                    team=team,
+                    health=health,
+                    name=name,
+                    bones=bones,
+                )
+            )
+
+        return snapshots
