@@ -2,37 +2,36 @@ import struct
 
 from pymem import Pymem
 
+from utils.structs import ScreenSize, Vec3
 
-def w2s(mtx: tuple[float, ...], posx: float, posy: float, posz: float, width: int, height: int) -> list[float]:
+
+def world_to_screen(matrix: tuple[float, ...], pos: Vec3, screen: ScreenSize) -> list[float] | None:
     """
     World to screen function.
 
     Args:
-        mtx (tuple[float, ...]): View matrix.
-        posx (float): x position.
-        posy (float): y position.
-        posz (float): z position.
-        width (int): Screen width.
-        height (int): Screen height.
+        matrix (tuple[float, ...]): View matrix.
+        pos (Vec3): x, y, z position.
+        screen (ScreenSize): screen height and width.
 
     Returns:
-        list[float]: Screen position [x, y].
+        list[float] | None: Screen position [x, y].
     """
-    screenW = (mtx[12] * posx) + (mtx[13] * posy) + (mtx[14] * posz) + mtx[15]
+    if pos is None:
+        return None
 
-    if screenW > 0.001:
-        screenX = (mtx[0] * posx) + (mtx[1] * posy) + (mtx[2] * posz) + mtx[3]
-        screenY = (mtx[4] * posx) + (mtx[5] * posy) + (mtx[6] * posz) + mtx[7]
+    x = matrix[0] * pos.x + matrix[1] * pos.y + matrix[2] * pos.z + matrix[3]
+    y = matrix[4] * pos.x + matrix[5] * pos.y + matrix[6] * pos.z + matrix[7]
+    w = matrix[12] * pos.x + matrix[13] * pos.y + matrix[14] * pos.z + matrix[15]
 
-        camX = width / 2
-        camY = height / 2
+    if w < 0.1:
+        return None
 
-        x = camX + int(camX * screenX / screenW)
-        y = camY - int(camY * screenY / screenW)
+    inv_w = 1.0 / w
 
-        return [x, y]
-
-    return [-999, -999]
+    x = screen.width / 2 + (x * inv_w) * screen.width / 2
+    y = screen.height / 2 - (y * inv_w) * screen.height / 2
+    return [x, y]
 
 
 def batch_bone_read(pm: Pymem, bone_matrix: int, bone_indices: dict[str, int]) -> dict[str, tuple[float, float, float]]:
