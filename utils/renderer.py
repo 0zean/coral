@@ -15,7 +15,7 @@ class ESPRenderer:
     def draw_entity(self, entity: EntitySnapshot, color: Color) -> None:
         bones = entity.bones
 
-        def proj(bone):
+        def proj(bone: str) -> list[float] | None:
             return world_to_screen(self.view_matrix, Vec3(*bones[bone]), self.screen)
 
         try:
