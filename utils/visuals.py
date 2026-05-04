@@ -1,7 +1,3 @@
-import struct
-
-from pymem import Pymem
-
 from utils.structs import ScreenSize, Vec3
 
 
@@ -32,30 +28,3 @@ def world_to_screen(matrix: tuple[float, ...], pos: Vec3, screen: ScreenSize) ->
     x = screen.width / 2 + (x * inv_w) * screen.width / 2
     y = screen.height / 2 - (y * inv_w) * screen.height / 2
     return [x, y]
-
-
-def batch_bone_read(pm: Pymem, bone_matrix: int, bone_indices: dict[str, int]) -> dict[str, tuple[float, float, float]]:
-    """
-    Batch read multiple bone positions.
-
-    Args:
-        pm (Pymem): Pymem instance.
-        bone_matrix (int): Bone matrix address.
-        bone_indices (dict[str, int]): Dictionary of bone names and their indices.
-
-    Returns:
-        dict[str, tuple[float, float, float]]: Dictionary of bone names and their positions.
-    """
-    min_bone = min(bone_indices.values())
-    max_bone = max(bone_indices.values())
-    total_bones = max_bone - min_bone + 1
-    base_offset = min_bone * 0x20
-    total_bytes = total_bones * 0x20
-
-    data = pm.read_bytes(bone_matrix + base_offset, total_bytes)
-    bones = {}
-    for name, idx in bone_indices.items():
-        offset = (idx - min_bone) * 0x20
-        x, y, z = struct.unpack("fff", data[offset : offset + 12])
-        bones[name] = (x, y, z)
-    return bones
