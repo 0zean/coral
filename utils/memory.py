@@ -28,17 +28,17 @@ class ProcessMemory:
         self._pm = pymem.Pymem(process_name=process_name)
 
     def read_i32(self, address: int) -> int:
-        return self._pm.read_int(address=address)
+        return self._pm.read_int(address=address)  # type: ignore
 
     def read_i64(self, address: int) -> int:
-        return self._pm.read_longlong(address=address)
+        return self._pm.read_longlong(address=address)  # type: ignore
 
     def read_f32(self, address: int) -> float:
-        return self._pm.read_float(address=address)
+        return self._pm.read_float(address=address)  # type: ignore
 
     def read_ptr(self, address: int) -> int:
         try:
-            return self._pm.read_longlong(address=address)
+            return self._pm.read_longlong(address=address)  # type: ignore
         except pymem.exception.MemoryReadError:
             return 0
 
