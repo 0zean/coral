@@ -5,6 +5,8 @@ from utils.visuals import world_to_screen
 
 
 class ESPRenderer:
+    __slots__ = ("screen", "view_matrix", "font")
+
     def __init__(self, screen: ScreenSize, view_matrix: tuple[float, ...], font: Font | None = None) -> None:
         self.screen = screen
         self.view_matrix = view_matrix

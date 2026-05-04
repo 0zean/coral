@@ -88,6 +88,15 @@ class Config:
             "pause",
             "`",
         )
+        self.SMOOTHING_MIN = 1.0
+        self.SMOOTHING_MAX = 3.0
+        self.SLEEP_TICK = 0.005
+        self.CS2_WINDOW_TITLE = "Counter-Strike 2"
+        self.SLEEP_INACTIVE = 0.1
+        self.SLEEP_PRESSED = 0.03
+        self.SLEEP_RELEASED = 0.1
+        self.CLICK_PRE_DELAY = (0.01, 0.03)  # seconds before press
+        self.CLICK_POST_DELAY = (0.01, 0.05)  # seconds before release
         self.MOUSEEVENTF_MOVE = MOUSEEVENTF_MOVE
         self.SCREEN_WIDTH = win32api.GetSystemMetrics(0)
         self.SCREEN_HEIGHT = win32api.GetSystemMetrics(1)

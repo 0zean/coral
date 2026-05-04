@@ -3,7 +3,6 @@ import io
 import struct
 import sys
 import threading
-from typing import Any
 
 from utils.memory import ProcessMemory
 
@@ -42,15 +41,19 @@ from utils.thread_manager import ThreadConfig
 
 
 class ESPController:
+    __slots__ = ("_mem", "_client", "_screen", "_entity_manager", "cached_view_matrix", "cached_entities")
+
     def __init__(self, mem: ProcessMemory, client: int, screen: ScreenSize) -> None:
         self._mem = mem
         self._client = client
         self._screen = screen
         self._entity_manager = EntityManager(mem, client, offsets, config.BONE_INDICES)
 
-    def get_view_matrix(self) -> tuple[float, ...]:
+    def get_view_matrix(self) -> tuple[float, ...] | None:
         data = self._mem.read_bytes(self._client + offsets["dwViewMatrix"], 4 * 16)
-        return struct.unpack("16f", data)
+        if data:
+            return struct.unpack("16f", data)
+        return None
 
     def _memory_reader_thread(self, stop_event: threading.Event, config: ThreadConfig) -> None:
         """Background thread that reads memory at a fixed cadence (e.g., 60Hz) to save CPU."""

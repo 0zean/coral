@@ -4,18 +4,13 @@ import time
 
 from win32gui import GetForegroundWindow, GetWindowText
 
+from utils.config import config as cfg
 from utils.memory import ProcessMemory
 from utils.mouse import get_mouse_pos, move_mouse_to_location
 from utils.offsets import offsets
 from utils.player import PlayerPawn
 from utils.structs import Vec2
 from utils.thread_manager import ThreadConfig
-
-_CS2_WINDOW_TITLE = "Counter-Strike 2"
-_SMOOTHING_MIN = 1.0
-_SMOOTHING_MAX = 3.0
-_SLEEP_INACTIVE = 0.1
-_SLEEP_TICK = 0.005
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +28,7 @@ def rcs(
         client (int): Client module base address.
         smoothing (float, optional): Smoothing factor. Defaults to 1.0.
     """
-    smooth_factor = max(_SMOOTHING_MIN, min(smoothing, _SMOOTHING_MAX))
+    smooth_factor = max(cfg.SMOOTHING_MIN, min(smoothing, cfg.SMOOTHING_MAX))
     old_punch = Vec2(0.0, 0.0)
     pawn: PlayerPawn | None = None
 
@@ -42,20 +37,20 @@ def rcs(
             if not config.enable_rcs:
                 pawn = None
                 old_punch = Vec2(0.0, 0.0)
-                time.sleep(_SLEEP_INACTIVE)
+                time.sleep(cfg.SLEEP_INACTIVE)
                 continue
 
             amt = config.rcs_amount
 
-            if GetWindowText(GetForegroundWindow()) != _CS2_WINDOW_TITLE:
-                time.sleep(_SLEEP_TICK)
+            if GetWindowText(GetForegroundWindow()) != cfg.CS2_WINDOW_TITLE:
+                time.sleep(cfg.SLEEP_TICK)
                 continue
 
             player_addr = mem.read_ptr(client + offsets["dwLocalPlayerPawn"])
 
             if not player_addr:
                 pawn = None
-                time.sleep(_SLEEP_TICK)
+                time.sleep(cfg.SLEEP_TICK)
                 continue
 
             if pawn is None or pawn._address != player_addr:
@@ -63,7 +58,7 @@ def rcs(
 
             state = pawn.snapshot()
             if state is None:
-                time.sleep(_SLEEP_TICK)
+                time.sleep(cfg.SLEEP_TICK)
                 continue
 
             shots_fired = state.shots_fired
@@ -99,5 +94,5 @@ def rcs(
 
         except Exception as exc:
             logger.warning("RCS error: %s", exc)
-            time.sleep(_SLEEP_TICK)
+            time.sleep(cfg.SLEEP_TICK)
             continue
