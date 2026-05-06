@@ -1,5 +1,6 @@
 import ctypes
 import io
+import os
 import struct
 import sys
 import threading
@@ -104,7 +105,8 @@ class ESPController:
         reader_thread.start()
 
         # Load custom font
-        font_path = b"C:\\Windows\\Fonts\\calibri.ttf"
+        windir = os.environ.get("WINDIR", r"C:\Windows")
+        font_path = os.path.join(windir, "Fonts", "calibri.ttf").encode()
         custom_font = load_font_ex(font_path, 20, None, 0)
 
         while not window_should_close() and not stop_event.is_set():
