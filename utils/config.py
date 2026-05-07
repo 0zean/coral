@@ -1,4 +1,5 @@
 import win32api
+from raylibpy import Color
 
 MOUSEEVENTF_MOVE: int = 0x0001
 
@@ -120,6 +121,18 @@ class Config:
             "ankle_right": 22,
             "leg": 22,
         }
+        self.HP_HIGH = Color(0, 200, 0, 255)
+        self.HP_MED = Color(255, 140, 0, 255)
+        self.HP_LOW = Color(255, 0, 0, 255)
+        self.NAME_COLOR = Color(255, 255, 0, 255)
+        self.HP_TEXT_SZ = 12
+        self.NAME_SZ = 16
+        self.TRANSPARENT = Color(0, 0, 0, 0)
+        self.ENTITY_COLOR = Color(0, 180, 255, 255)
+        self.READER_TICK = 1.0 / 60
+        self.GWL_EXSTYLE = -20
+        self.WS_EX_TRANSPARENT = 0x00000020
+        self.WS_EX_TOOLWINDOW = 0x00000080
 
 
 config = Config()

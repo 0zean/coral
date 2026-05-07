@@ -1,117 +1,127 @@
+import logging
+
 from raylibpy import Color, Font, Vector2, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, draw_text_ex
 
+from utils.config import config as cfg
 from utils.structs import EntitySnapshot, ScreenSize, Vec3
 from utils.visuals import world_to_screen
 
 
+def _hp_color(hp: int) -> Color:
+    if hp >= 70:
+        return cfg.HP_HIGH
+    if hp > 30:
+        return cfg.HP_MED
+    return cfg.HP_LOW
+
+
 class ESPRenderer:
+    """
+    Stateful per-session renderer.
+
+    Construct once; call update_matrix() with the current view matrix each
+    frame before iterating over entities.
+    """
+
     __slots__ = ("screen", "view_matrix", "font")
 
-    def __init__(self, screen: ScreenSize, view_matrix: tuple[float, ...], font: Font | None = None) -> None:
+    def __init__(self, screen: ScreenSize, font: Font | None = None) -> None:
         self.screen = screen
-        self.view_matrix = view_matrix
+        self.view_matrix: tuple[float, ...] = ()
         self.font = font
+
+    def update_matrix(self, view_matrix: tuple[float, ...]) -> None:
+        """Update the view matrix for this frame. Call once before draw_entity."""
+        self.view_matrix = view_matrix
 
     def draw_entity(self, entity: EntitySnapshot, color: Color) -> None:
         bones = entity.bones
 
         def proj(bone: str) -> list[float] | None:
-            return world_to_screen(self.view_matrix, Vec3(*bones[bone]), self.screen)
+            b = bones.get(bone)
+            return world_to_screen(self.view_matrix, Vec3(*b), self.screen) if b else None
 
         try:
             head = proj("head")
-            knee_left, ankle_left = proj("knee_left"), proj("ankle_left")
-            knee_right, ankle_right = proj("knee_right"), proj("ankle_right")
-            neck, right_shoulder, left_shoulder = proj("neck"), proj("shoulder_right"), proj("shoulder_left")
-            arm_right, hand_right = proj("arm_right"), proj("hand_right")
-            arm_left, hand_left = proj("arm_left"), proj("hand_left")
+            neck = proj("neck")
+            shoulder_right = proj("shoulder_right")
+            shoulder_left = proj("shoulder_left")
+            arm_right = proj("arm_right")
+            arm_left = proj("arm_left")
+            hand_right = proj("hand_right")
+            hand_left = proj("hand_left")
             waist = proj("waist")
+            knee_right = proj("knee_right")
+            knee_left = proj("knee_left")
+            ankle_right = proj("ankle_right")
+            ankle_left = proj("ankle_left")
 
-            head_bone = bones["head"]
-            leg_bone = bones["leg"]
-
-            head_x, head_y, head_z = bones["head"]
-            head_z += 8.0
-
-            head_vec = Vec3(float(head_x), float(head_y), float(head_z))
-            head_pos = world_to_screen(self.view_matrix, head_vec, self.screen)
-
-            leg_vec = Vec3(float(head_bone[0]), float(head_bone[1]), float(leg_bone[2]))
-            leg_pos = world_to_screen(self.view_matrix, leg_vec, self.screen)
-
-            # Early exit if both head and legs are off-screen, skip drawing this entity
-            if head_pos is None and leg_pos is None:
-                return
-
-            bone_connections = [
-                (neck, right_shoulder),
-                (neck, left_shoulder),
-                (arm_left, left_shoulder),
-                (arm_right, right_shoulder),
+            # Skeleton
+            bone_connections = (
+                (neck, shoulder_right),
+                (neck, shoulder_left),
+                (shoulder_left, arm_left),
+                (shoulder_right, arm_right),
                 (arm_right, hand_right),
                 (arm_left, hand_left),
                 (neck, waist),
-                (knee_right, waist),
-                (knee_left, waist),
+                (waist, knee_right),
+                (waist, knee_left),
                 (knee_left, ankle_left),
                 (knee_right, ankle_right),
-            ]
+            )
 
-            # Collect successfully projected valid bones to determine the bounding box
-            valid_y = []
-            valid_x = []
+            valid_x: list[float] = []
+            valid_y: list[float] = []
 
-            # Draw Skeleton and collect bounding coordinates
-            for b1, b2 in bone_connections:
-                if b1 is not None and b2 is not None:
-                    draw_line(int(b1[0]), int(b1[1]), int(b2[0]), int(b2[1]), color)
-                    valid_y.extend([b1[1], b2[1]])
-                    valid_x.extend([b1[0], b2[0]])
+            for a, b in bone_connections:
+                if a is not None and b is not None:
+                    draw_line(int(a[0]), int(a[1]), int(b[0]), int(b[1]), color)
+                    valid_x.extend((a[0], b[0]))
+                    valid_y.extend((a[1], b[1]))
 
             if head is not None:
-                valid_y.append(head[1])
                 valid_x.append(head[0])
+                valid_y.append(head[1])
 
-            # If no valid coordinates were drawn, skip drawing the box/HP entirely
-            if not valid_y or not valid_x:
+            if not valid_y:
                 return
 
-            # Dynamic Bounding Box derived strictly from rendered bones
-            min_y = min(valid_y) - 10.0  # Top buffer for head
-            max_y = max(valid_y) + 5.0  # Bottom buffer for feet
+            # Bounding box
+            min_y = min(valid_y) - 10.0
+            max_y = max(valid_y) + 5.0
+            box_h = max_y - min_y
+            box_w = box_h / 2.0
+            center_x = (min(valid_x) + max(valid_x)) / 2.0
+            lx = center_x - box_w / 2.0
 
-            box_height = max_y - min_y
-            box_width = box_height // 2  # Keeps standard bounding box proportion
+            draw_rectangle_lines(int(lx), int(min_y), int(box_w), int(box_h), color)
 
-            # Center box around X-center of valid points
-            center_x = (min(valid_x) + max(valid_x)) / 2
-            left_x = center_x - (box_width / 2)
-            right_x = center_x + (box_width / 2)
-
-            # Draw Box
-            draw_rectangle_lines(int(left_x), int(min_y), int(box_width), int(box_height), color)
-
-            # Draw Head Circle around true head bone if visible
+            # Head circle
             if head is not None and neck is not None:
-                draw_circle_lines(int(head[0]), int(head[1]), abs(head[1] - neck[1]) * 1.125, color)
+                radius = abs(head[1] - neck[1]) * 1.125
+                draw_circle_lines(int(head[0]), int(head[1]), radius, color)
 
-            # Draw Health Bar
-            health = entity.health
-            health_color = (
-                Color(0, 200, 0, 255)
-                if health >= 70.0
-                else Color(255, 140, 0, 255)
-                if health > 30.0
-                else Color(255, 0, 0, 255)
-            )
-            scaled_health_pos = min_y + ((100 - int(health)) / 100.0) * box_height
-            draw_line(int(left_x - 5), int(scaled_health_pos), int(left_x - 5), int(max_y), health_color)
+            # Health bar
+            hp = max(0, min(100, entity.health))
+            hp_color = _hp_color(hp)
+            bar_top = min_y + (1.0 - hp / 100.0) * box_h
+            draw_line(int(lx - 5), int(bar_top), int(lx - 5), int(max_y), hp_color)
 
+            # Player name + HP
             if self.font:
-                draw_text_ex(self.font, f"HP: {health}", Vector2(left_x, max_y + 2), 12, 1, Color(255, 255, 0, 255))
-                draw_text_ex(self.font, entity.name, Vector2(left_x, min_y - 12), 16, 1, Color(255, 255, 0, 255))
+                draw_text_ex(
+                    self.font,
+                    entity.name or "?",
+                    Vector2(lx, min_y - cfg.NAME_SZ - 2),
+                    float(cfg.NAME_SZ),
+                    1.0,
+                    cfg.NAME_COLOR,
+                )
+                draw_text_ex(self.font, f"HP: {hp}", Vector2(lx, max_y + 2), float(cfg.HP_TEXT_SZ), 1.0, cfg.NAME_COLOR)
             else:
-                draw_text(f"HP: {health}", int(left_x), int(max_y + 2), 10, Color(255, 255, 0, 255))
-                draw_text(entity.name, int(left_x), int(min_y - 12), 12, Color(255, 255, 0, 255))
-        except Exception as e:
-            print(f"Error drawing entity: {e}")
+                draw_text(entity.name or "?", int(lx), int(min_y - cfg.NAME_SZ - 2), cfg.NAME_SZ, cfg.NAME_COLOR)
+                draw_text(f"HP: {hp}", int(lx), int(max_y + 2), cfg.HP_TEXT_SZ, cfg.NAME_COLOR)
+
+        except Exception as exc:
+            logging.getLogger(__name__).debug("Error drawing entity %s: %s", entity.name, exc)
