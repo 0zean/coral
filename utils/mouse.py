@@ -24,7 +24,7 @@ def _make_relative_input(dx: int, dy: int) -> INPUT:
         dx=dx,
         dy=dy,
         mouseData=0,
-        dwFlags=config.MOUSEEVENTF_MOVE,
+        dwFlags=config.mouse.mouseeventf_move,
         time=0,
         dwExtraInfo=ctypes.pointer(ctypes.c_ulong(0)),
     )
@@ -75,7 +75,7 @@ def move_mouse_to_location(pos: Vec2) -> None:
     if pos.x < 0.0 or pos.y < 0.0:
         return
 
-    center = Vec2(config.SCREEN_WIDTH / 2.0, config.SCREEN_HEIGHT / 2.0)
+    center = Vec2(config.screen.width / 2.0, config.screen.height / 2.0)
     dx = int(pos.x - center.x)
     dy = int(pos.y - center.y)
 

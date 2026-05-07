@@ -31,7 +31,6 @@ class ThreadManager:
         self.stop_events[name] = stop_event
 
         # Pass stop_event and config to the target function
-        # The target function must accept (stop_event, config, *other_args)
         thread = threading.Thread(target=target, args=(stop_event, self.config) + args, daemon=True)
         self.threads[name] = thread
         thread.start()

@@ -7,7 +7,7 @@ import keyboard
 from pynput.mouse import Button, Controller
 from win32gui import GetForegroundWindow, GetWindowText
 
-from utils.config import config as cfg
+from utils.config import config, CS2_WINDOW_TITLE
 from utils.memory import ProcessMemory
 from utils.offsets import offsets
 from utils.thread_manager import ThreadConfig
@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 def _is_cs2_focused() -> bool:
-    return GetWindowText(GetForegroundWindow()) == cfg.CS2_WINDOW_TITLE
+    return GetWindowText(GetForegroundWindow()) == CS2_WINDOW_TITLE
 
 
 def _click() -> None:
     """Simulate a left-click with randomised pre/post delays."""
-    time.sleep(uniform(*cfg.CLICK_PRE_DELAY))
+    time.sleep(uniform(*config.timing.click_pre_delay))
     _mouse.press(Button.left)
-    time.sleep(uniform(*cfg.CLICK_POST_DELAY))
+    time.sleep(uniform(*config.timing.click_post_delay))
     _mouse.release(Button.left)
 
 
@@ -46,7 +46,7 @@ def _resolve_entity(mem: ProcessMemory, client: int, entity_id: int) -> int:
     return entity
 
 
-def trig(stop_event: threading.Event, config: ThreadConfig, mem: ProcessMemory, client: int) -> None:
+def trig(stop_event: threading.Event, thread_cfg: ThreadConfig, mem: ProcessMemory, client: int) -> None:
     """
     Trigger bot thread.
 
@@ -58,46 +58,46 @@ def trig(stop_event: threading.Event, config: ThreadConfig, mem: ProcessMemory, 
     """
     while not stop_event.is_set():
         try:
-            if not config.enable_trigger:
-                time.sleep(cfg.SLEEP_INACTIVE)
+            if not thread_cfg.enable_trigger:
+                time.sleep(config.timing.sleep_inactive)
                 continue
 
             if not _is_cs2_focused():
-                time.sleep(cfg.SLEEP_INACTIVE)
+                time.sleep(config.timing.sleep_inactive)
                 continue
 
-            if not keyboard.is_pressed(config.trigger_key):
-                time.sleep(cfg.SLEEP_RELEASED)
+            if not keyboard.is_pressed(thread_cfg.trigger_key):
+                time.sleep(config.timing.sleep_released)
                 continue
 
             # Only read memory once the trigger key is confirmed held
             player = mem.read_ptr(client + offsets["dwLocalPlayerPawn"])
             if not player:
-                time.sleep(cfg.SLEEP_PRESSED)
+                time.sleep(config.timing.sleep_pressed)
                 continue
 
             entity_id = mem.read_i32(player + offsets["m_iIDEntIndex"])
             if not isinstance(entity_id, int) or entity_id <= 0:
-                time.sleep(cfg.SLEEP_PRESSED)
+                time.sleep(config.timing.sleep_pressed)
                 continue
 
             local_team = mem.read_i32(player + offsets["m_iTeamNum"])
 
             entity = _resolve_entity(mem, client, entity_id)
             if not entity:
-                time.sleep(cfg.SLEEP_PRESSED)
+                time.sleep(config.timing.sleep_pressed)
                 continue
 
             entity_team = mem.read_i32(entity + offsets["m_iTeamNum"])
             if entity_team == local_team:
-                time.sleep(cfg.SLEEP_PRESSED)
+                time.sleep(config.timing.sleep_pressed)
                 continue
 
             entity_hp = mem.read_i32(entity + offsets["m_iHealth"])
             if isinstance(entity_hp, int) and entity_hp > 0:
                 _click()
 
-            time.sleep(cfg.SLEEP_PRESSED)
+            time.sleep(config.timing.sleep_pressed)
 
         except KeyboardInterrupt:
             break

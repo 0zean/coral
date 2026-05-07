@@ -9,7 +9,7 @@ from pymem.ressources.structure import MODULEINFO
 from functions.esp import ESPController
 from functions.rcs import rcs
 from functions.trig import trig
-from utils.config import config
+from utils.config import config, TRIGGER_KEYS
 from utils.memory import ProcessMemory
 from utils.structs import ScreenSize
 from utils.thread_manager import ThreadManager
@@ -94,7 +94,7 @@ with tab_aim:
     with col_control:
         trigkey = st.selectbox(
             "Trigger key  (*x* / *x2* = mouse side-buttons)",
-            config.keys,
+            TRIGGER_KEYS,
             placeholder="Choose a key",
             disabled=not enable_trigger,
         )
@@ -116,7 +116,7 @@ with tab_esp:
     thread_mgr.config.enable_esp = enable_esp
 
     if enable_esp and not thread_mgr.is_running("esp"):
-        screen = ScreenSize(width=config.SCREEN_WIDTH, height=config.SCREEN_HEIGHT)
+        screen = ScreenSize(width=config.screen.width, height=config.screen.height)
 
         def _esp_thread(
             stop_event,

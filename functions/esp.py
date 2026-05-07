@@ -55,7 +55,7 @@ class ESPController:
         self._mem = mem
         self._client = client
         self._screen = screen
-        self._entity_mgr = EntityManager(mem, client, offsets, config.BONE_INDICES)
+        self._entity_mgr = EntityManager(mem, client, offsets, config.skeleton.bone_indices)
 
     def _get_view_matrix(self) -> tuple[float, ...] | None:
         raw = self._mem.read_bytes(self._client + offsets["dwViewMatrix"], 64)
@@ -71,13 +71,13 @@ class ESPController:
             logger.warning("get_window_handle() returned NULL; click-through not applied")
             return
         user32 = ctypes.windll.user32
-        style = user32.GetWindowLongW(hwnd, config.GWL_EXSTYLE)
-        user32.SetWindowLongW(hwnd, config.GWL_EXSTYLE, style | config.WS_EX_TRANSPARENT | config.WS_EX_TOOLWINDOW)
+        style = user32.GetWindowLongW(hwnd, config.win32.gwl_exstyle)
+        user32.SetWindowLongW(hwnd, config.win32.gwl_exstyle, style | config.win32.ws_ex_transparent | config.win32.ws_ex_toolwindow)
 
-    def _reader(self, stop_event: threading.Event, cfg: ThreadConfig, vm_cell: list, ent_cell: list) -> None:
+    def _reader(self, stop_event: threading.Event, thread_cfg: ThreadConfig, vm_cell: list, ent_cell: list) -> None:
         """Background memory-reader thread (~60 Hz)."""
         while not stop_event.is_set():
-            if cfg.enable_esp:
+            if thread_cfg.enable_esp:
                 try:
                     vm_cell[0] = self._get_view_matrix()
                     ent_cell[0] = self._entity_mgr.get_entities()
@@ -86,9 +86,9 @@ class ESPController:
             else:
                 vm_cell[0] = None
                 ent_cell[0] = []
-            time.sleep(config.READER_TICK)
+            time.sleep(config.timing.reader_tick)
 
-    def run(self, stop_event: threading.Event, cfg: ThreadConfig) -> None:
+    def run(self, stop_event: threading.Event, thread_cfg: ThreadConfig) -> None:
         set_trace_log_level(LOG_NONE)
 
         # window flags before creation
@@ -109,7 +109,7 @@ class ESPController:
 
         # sentinel frame
         begin_drawing()
-        clear_background(config.TRANSPARENT)
+        clear_background(config.render.transparent)
         end_drawing()
 
         # load font
@@ -121,7 +121,7 @@ class ESPController:
         vm_cell: list = [None]
         ent_cell: list = [[]]
 
-        reader_thread = threading.Thread(target=self._reader, args=(stop_event, cfg, vm_cell, ent_cell), daemon=True)
+        reader_thread = threading.Thread(target=self._reader, args=(stop_event, thread_cfg, vm_cell, ent_cell), daemon=True)
         reader_thread.start()
 
         # Construct renderer once
@@ -133,12 +133,12 @@ class ESPController:
             entities = ent_cell[0]
 
             begin_drawing()
-            clear_background(config.TRANSPARENT)
+            clear_background(config.render.transparent)
 
-            if cfg.enable_esp and vm is not None:
+            if thread_cfg.enable_esp and vm is not None:
                 renderer.update_matrix(vm)
                 for entity in entities:
-                    renderer.draw_entity(entity, config.ENTITY_COLOR)
+                    renderer.draw_entity(entity, config.render.entity_color)
 
             end_drawing()
 

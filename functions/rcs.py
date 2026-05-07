@@ -4,7 +4,7 @@ import time
 
 from win32gui import GetForegroundWindow, GetWindowText
 
-from utils.config import config as cfg
+from utils.config import config, CS2_WINDOW_TITLE
 from utils.memory import ProcessMemory
 from utils.mouse import get_mouse_pos, move_mouse_to_location
 from utils.offsets import offsets
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def rcs(
-    stop_event: threading.Event, config: ThreadConfig, mem: ProcessMemory, client: int, smoothing: float = 1.0
+    stop_event: threading.Event, thread_cfg: ThreadConfig, mem: ProcessMemory, client: int, smoothing: float = 1.0
 ) -> None:
     """
     Recoil control system function.
@@ -28,29 +28,29 @@ def rcs(
         client (int): Client module base address.
         smoothing (float, optional): Smoothing factor. Defaults to 1.0.
     """
-    smooth_factor = max(cfg.SMOOTHING_MIN, min(smoothing, cfg.SMOOTHING_MAX))
+    smooth_factor = max(config.mouse.smoothing_min, min(smoothing, config.mouse.smoothing_max))
     old_punch = Vec2(0.0, 0.0)
     pawn: PlayerPawn | None = None
 
     while not stop_event.is_set():
         try:
-            if not config.enable_rcs:
+            if not thread_cfg.enable_rcs:
                 pawn = None
                 old_punch = Vec2(0.0, 0.0)
-                time.sleep(cfg.SLEEP_INACTIVE)
+                time.sleep(config.timing.sleep_inactive)
                 continue
 
-            amt = config.rcs_amount
+            amt = thread_cfg.rcs_amount
 
-            if GetWindowText(GetForegroundWindow()) != cfg.CS2_WINDOW_TITLE:
-                time.sleep(cfg.SLEEP_TICK)
+            if GetWindowText(GetForegroundWindow()) != CS2_WINDOW_TITLE:
+                time.sleep(config.timing.sleep_tick)
                 continue
 
             player_addr = mem.read_ptr(client + offsets["dwLocalPlayerPawn"])
 
             if not player_addr:
                 pawn = None
-                time.sleep(cfg.SLEEP_TICK)
+                time.sleep(config.timing.sleep_tick)
                 continue
 
             if pawn is None or pawn._address != player_addr:
@@ -58,13 +58,13 @@ def rcs(
 
             state = pawn.snapshot()
             if state is None:
-                time.sleep(cfg.SLEEP_TICK)
+                time.sleep(config.timing.sleep_tick)
                 continue
 
             shots_fired = state.shots_fired
             punch_x, punch_y, _ = state.aim_punch
             sensitivity = state.sensitivity
-            amt = config.rcs_amount
+            amt = thread_cfg.rcs_amount
 
             if 1 < shots_fired < 999_999:
                 delta_x = (punch_x - old_punch.x) * -1.0
@@ -94,5 +94,5 @@ def rcs(
 
         except Exception as exc:
             logger.warning("RCS error: %s", exc)
-            time.sleep(cfg.SLEEP_TICK)
+            time.sleep(config.timing.sleep_tick)
             continue

@@ -2,17 +2,17 @@ import logging
 
 from raylibpy import Color, Font, Vector2, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, draw_text_ex
 
-from utils.config import config as cfg
+from utils.config import config
 from utils.structs import EntitySnapshot, ScreenSize, Vec3
 from utils.visuals import world_to_screen
 
 
 def _hp_color(hp: int) -> Color:
     if hp >= 70:
-        return cfg.HP_HIGH
+        return config.render.hp_high
     if hp > 30:
-        return cfg.HP_MED
-    return cfg.HP_LOW
+        return config.render.hp_med
+    return config.render.hp_low
 
 
 class ESPRenderer:
@@ -113,15 +113,15 @@ class ESPRenderer:
                 draw_text_ex(
                     self.font,
                     entity.name or "?",
-                    Vector2(lx, min_y - cfg.NAME_SZ - 2),
-                    float(cfg.NAME_SZ),
+                    Vector2(lx, min_y - config.render.name_sz - 2),
+                    float(config.render.name_sz),
                     1.0,
-                    cfg.NAME_COLOR,
+                    config.render.name_color,
                 )
-                draw_text_ex(self.font, f"HP: {hp}", Vector2(lx, max_y + 2), float(cfg.HP_TEXT_SZ), 1.0, cfg.NAME_COLOR)
+                draw_text_ex(self.font, f"HP: {hp}", Vector2(lx, max_y + 2), float(config.render.hp_text_sz), 1.0, config.render.name_color)
             else:
-                draw_text(entity.name or "?", int(lx), int(min_y - cfg.NAME_SZ - 2), cfg.NAME_SZ, cfg.NAME_COLOR)
-                draw_text(f"HP: {hp}", int(lx), int(max_y + 2), cfg.HP_TEXT_SZ, cfg.NAME_COLOR)
+                draw_text(entity.name or "?", int(lx), int(min_y - config.render.name_sz - 2), config.render.name_sz, config.render.name_color)
+                draw_text(f"HP: {hp}", int(lx), int(max_y + 2), config.render.hp_text_sz, config.render.name_color)
 
         except Exception as exc:
             logging.getLogger(__name__).debug("Error drawing entity %s: %s", entity.name, exc)
