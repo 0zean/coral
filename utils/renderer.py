@@ -118,9 +118,22 @@ class ESPRenderer:
                     1.0,
                     config.render.name_color,
                 )
-                draw_text_ex(self.font, f"HP: {hp}", Vector2(lx, max_y + 2), float(config.render.hp_text_sz), 1.0, config.render.name_color)
+                draw_text_ex(
+                    self.font,
+                    f"HP: {hp}",
+                    Vector2(lx, max_y + 2),
+                    float(config.render.hp_text_sz),
+                    1.0,
+                    config.render.name_color,
+                )
             else:
-                draw_text(entity.name or "?", int(lx), int(min_y - config.render.name_sz - 2), config.render.name_sz, config.render.name_color)
+                draw_text(
+                    entity.name or "?",
+                    int(lx),
+                    int(min_y - config.render.name_sz - 2),
+                    config.render.name_sz,
+                    config.render.name_color,
+                )
                 draw_text(f"HP: {hp}", int(lx), int(max_y + 2), config.render.hp_text_sz, config.render.name_color)
 
         except Exception as exc:

@@ -72,7 +72,9 @@ class ESPController:
             return
         user32 = ctypes.windll.user32
         style = user32.GetWindowLongW(hwnd, config.win32.gwl_exstyle)
-        user32.SetWindowLongW(hwnd, config.win32.gwl_exstyle, style | config.win32.ws_ex_transparent | config.win32.ws_ex_toolwindow)
+        user32.SetWindowLongW(
+            hwnd, config.win32.gwl_exstyle, style | config.win32.ws_ex_transparent | config.win32.ws_ex_toolwindow
+        )
 
     def _reader(self, stop_event: threading.Event, thread_cfg: ThreadConfig, vm_cell: list, ent_cell: list) -> None:
         """Background memory-reader thread (~60 Hz)."""
@@ -121,7 +123,9 @@ class ESPController:
         vm_cell: list = [None]
         ent_cell: list = [[]]
 
-        reader_thread = threading.Thread(target=self._reader, args=(stop_event, thread_cfg, vm_cell, ent_cell), daemon=True)
+        reader_thread = threading.Thread(
+            target=self._reader, args=(stop_event, thread_cfg, vm_cell, ent_cell), daemon=True
+        )
         reader_thread.start()
 
         # Construct renderer once
