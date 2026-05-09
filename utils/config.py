@@ -3,6 +3,21 @@ from dataclasses import dataclass, field
 import win32api
 from raylibpy import Color
 
+TRIGGER_KEYS: tuple[str, ...] = (
+    "shift", "x", "x2", "alt", "ctrl",
+    "insert", "home", "page up", "delete", "end", "page down",
+    "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    "up", "left", "down", "right",
+    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+    "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "y", "z",
+    "-", "=", "backspace", "tab", "[", "]", "caps lock",
+    ";", "'", "enter", ",", ".", "/",
+    "num lock", "*", "+", "scroll lock", "pause", "`",
+)
+
+CS2_WINDOW_TITLE: str = "Counter-Strike 2"
+
 
 @dataclass(frozen=True)
 class TimingConfig:
@@ -75,22 +90,6 @@ class ScreenConfig:
     def __post_init__(self) -> None:
         self.width = win32api.GetSystemMetrics(0)
         self.height = win32api.GetSystemMetrics(1)
-
-
-TRIGGER_KEYS: tuple[str, ...] = (
-    "shift", "x", "x2", "alt", "ctrl",
-    "insert", "home", "page up", "delete", "end", "page down",
-    "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12",
-    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-    "up", "left", "down", "right",
-    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
-    "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "y", "z",
-    "-", "=", "backspace", "tab", "[", "]", "caps lock",
-    ";", "'", "enter", ",", ".", "/",
-    "num lock", "*", "+", "scroll lock", "pause", "`",
-)
-
-CS2_WINDOW_TITLE: str = "Counter-Strike 2"
 
 
 @dataclass(frozen=True)
