@@ -6551,36 +6551,6 @@
         ],
         "parent": null
       },
-      "PARTICLE_SEQUENCE_CROP_OVERRIDE_DEFAULT": {
-        "fields": {},
-        "metadata": [],
-        "parent": null
-      },
-      "PF_BIAS_TYPE_STANDARD": {
-        "fields": {},
-        "metadata": [],
-        "parent": null
-      },
-      "PF_NOISE_MODIFIER_NONE": {
-        "fields": {},
-        "metadata": [],
-        "parent": null
-      },
-      "PF_NOISE_TURB_NONE": {
-        "fields": {},
-        "metadata": [],
-        "parent": null
-      },
-      "PF_ROUND_TYPE_NEAREST": {
-        "fields": {},
-        "metadata": [],
-        "parent": null
-      },
-      "PF_TYPE_LITERAL": {
-        "fields": {},
-        "metadata": [],
-        "parent": null
-      },
       "PhysicsRagdollPose_t": {
         "fields": {
           "m_Transforms": 8,
@@ -6729,11 +6699,6 @@
         "fields": {
           "m_weaponPurchases": 8
         },
-        "metadata": [],
-        "parent": null
-      },
-      "_": {
-        "fields": {},
         "metadata": [],
         "parent": null
       },
