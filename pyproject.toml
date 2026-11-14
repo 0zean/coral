@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11.11"
 dependencies = [
     "keyboard>=0.13.5",
-    "pymem>=1.14.0",
+    "pymemoryeditor>=3.4.3",
     "pynput>=1.8.2",
     "pywin32>=312",
     "raylib-py>=5.5.0",

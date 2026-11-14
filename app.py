@@ -1,11 +1,8 @@
 import os
 from pathlib import Path
 
-import pymem.exception
-import pymem.process
 import streamlit as st
-import win32process
-from pymem.ressources.structure import MODULEINFO
+from PyMemoryEditor import AmbiguousProcessNameError, ProcessIDNotExistsError, ProcessNotFoundError
 
 from utils.config import TRIGGER_KEYS
 from utils.memory import ProcessMemory
@@ -19,7 +16,6 @@ st.set_page_config(
 )
 state = st.session_state
 _HERE = Path(__file__).resolve().parent
-STILL_ACTIVE = 259  # GetExitCodeProcess result for a process that has not exited
 
 try:  # utils.offsets parses output/*.json at import and raises RuntimeError if the dump is missing or stale
     from functions.esp import ESPController
@@ -35,29 +31,36 @@ if st.sidebar.button("Shut Down"):
 
 def _still_attached(res: tuple[ProcessMemory, int, ThreadManager]) -> bool:
     mem, _, mgr = res
-    if win32process.GetExitCodeProcess(mem.pymem.process_handle) == STILL_ACTIVE:
+    if mem.is_alive():
         return True
     mgr.stop_all()  # cs2.exe exited: stop the old workers before re-attaching
-    mem.pymem.close_process()
+    mem.close()
     return False
 
 
 @st.cache_resource(validate=_still_attached)  # one attach per server process, shared by every tab and refresh
 def _attach() -> tuple[ProcessMemory, int, ThreadManager]:
-    mem = ProcessMemory("cs2.exe")  # ProcessNotFound propagates and is not cached
-    module = pymem.process.module_from_name(mem.pymem.process_handle, "client.dll")
-    if not isinstance(module, MODULEINFO):
-        mem.pymem.close_process()
+    mem = ProcessMemory("cs2.exe")  # ProcessNotFoundError propagates and is not cached
+    try:
+        client = mem.module_base("client.dll")
+    except Exception:
+        mem.close()
+        raise
+    if client is None:
+        mem.close()
         raise LookupError("client.dll not found in cs2.exe!")
-    return mem, module.lpBaseOfDll, ThreadManager()
+    return mem, client, ThreadManager()
 
 
 try:
     mem, client, thread_mgr = _attach()
-except pymem.exception.ProcessNotFound:
+except (ProcessNotFoundError, ProcessIDNotExistsError):  # the latter: cs2.exe exited while we were attaching
     st.error("cs2.exe not found!", icon="\U0001f6a8")
     st.stop()
-except pymem.exception.CouldNotOpenProcess:
+except AmbiguousProcessNameError:
+    st.error("More than one cs2.exe is running!", icon="\U0001f6a8")
+    st.stop()
+except OSError:
     st.error("Could not open cs2.exe for reading (try running CORAL as administrator).", icon="\U0001f6a8")
     st.stop()
 except LookupError as e:
