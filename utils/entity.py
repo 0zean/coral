@@ -1,8 +1,6 @@
 import struct
 
-import pymem.exception
-
-from utils.memory import ProcessMemory
+from utils.memory import MemoryReadError, ProcessMemory
 from utils.structs import EntitySnapshot
 
 LIFE_ALIVE = 0
@@ -62,7 +60,7 @@ class EntityManager:
 
         try:
             local_addr, local_team = self._local_team()
-        except pymem.exception.MemoryReadError:
+        except MemoryReadError:
             return snapshots
         if not local_addr:
             # main menu / between rounds: no local pawn means no team to filter against
@@ -105,7 +103,7 @@ class EntityManager:
                 scene = mem.read_ptr(pawn + off["m_pGameSceneNode"])
                 bone_matrix = mem.read_ptr(scene + off["m_modelState"] + BONE_ARRAY_PTR_OFFSET) if scene else 0
                 bones = self._batch_bones(bone_matrix) if bone_matrix else {}
-            except pymem.exception.MemoryReadError:
+            except MemoryReadError:
                 continue  # entity torn down mid-walk: drop this slot, keep the rest of the frame
 
             snapshots.append(EntitySnapshot(address=pawn, team=team, health=health, name=name, bones=bones))
